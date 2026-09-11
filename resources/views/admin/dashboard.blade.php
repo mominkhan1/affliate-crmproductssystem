@@ -278,7 +278,7 @@
             $money = [
                 ['label' => 'User Commission', 'value' => $userCommission, 'token' => 'success'],
                 ['label' => 'Admin Commission', 'value' => $adminCommission, 'token' => 'info'],
-                ['label' => 'Open Pipeline', 'value' => $pipeline, 'token' => 'warning'],
+                ['label' => 'Total Commission', 'value' => $totalCommission, 'token' => 'warning'],
                 ['label' => 'Avg. Order Value', 'value' => $averageOrder, 'token' => 'accent2'],
             ];
         @endphp

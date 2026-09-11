@@ -51,9 +51,9 @@ class DashboardController extends Controller
         $completedOrders = $sumFor(Order::EARNING_STATUSES);
 
         $revenue = (float) $scope()->whereIn('status', Order::EARNING_STATUSES)->sum('total_price');
-        $pipeline = (float) $scope()->whereIn('status', Order::OPEN_STATUSES)->sum('total_price');
         $userCommission = (float) $scope()->whereIn('status', Order::EARNING_STATUSES)->sum('user_commission_total');
         $adminCommission = (float) $scope()->whereIn('status', Order::EARNING_STATUSES)->sum('admin_commission_total');
+        $totalCommission = $userCommission + $adminCommission;
 
         $series = $this->series($scope, $from, $to);
 
@@ -75,9 +75,9 @@ class DashboardController extends Controller
                 ->values(),
 
             'revenue' => $revenue,
-            'pipeline' => $pipeline,
             'userCommission' => $userCommission,
             'adminCommission' => $adminCommission,
+            'totalCommission' => $totalCommission,
             'averageOrder' => $completedOrders > 0 ? $revenue / $completedOrders : 0.0,
             'conversionRate' => $totalOrders > 0 ? $completedOrders / $totalOrders * 100 : 0.0,
 
