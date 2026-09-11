@@ -282,6 +282,15 @@ class Order extends Model
     }
 
     /**
+     * Whether this order has reached an end state (won or lost), rather
+     * than still working its way through the pipeline.
+     */
+    public function isFinal(): bool
+    {
+        return ! in_array($this->status, self::OPEN_STATUSES, true);
+    }
+
+    /**
      * The fill and text colour this order's status cell takes in the table.
      */
     public function sheetStatusClasses(): string

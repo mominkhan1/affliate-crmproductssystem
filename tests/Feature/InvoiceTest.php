@@ -213,24 +213,23 @@ class InvoiceTest extends TestCase
         $this->assertSame('pending', $invoice->fresh()->status);
     }
 
-    public function test_the_status_reaches_the_customers_order_list(): void
+    public function test_the_final_status_column_only_fills_in_once_the_order_is_resolved(): void
     {
-        $invoice = $this->sendInvoice($this->makeOrder($this->customer));
+        $order = $this->makeOrder($this->customer, 'post_date');
 
-        // The list carries the invoice in its own "Final Status" column, so the
-        // word is read under that heading rather than prefixed onto the chip.
+        // Still working its way through the pipeline, so the column reads blank.
         $this->actingAs($this->customer)
             ->get(route('order.list'))
             ->assertOk()
-            ->assertSeeInOrder(['Final Status', 'Pending']);
+            ->assertSeeInOrder(['Final Status', '&mdash;'], false);
 
-        $this->actingAs($this->admin)->patchJson(route('admin.invoices.status', $invoice), ['status' => 'paid']);
+        $order->update(['status' => 'sale', 'sale_date' => now()]);
 
+        // Reached an end state, so its own outcome now shows here.
         $this->actingAs($this->customer)
             ->get(route('order.list'))
             ->assertOk()
-            ->assertSeeInOrder(['Final Status', 'Paid'])
-            ->assertDontSee('Pending');
+            ->assertSeeInOrder(['Final Status', 'Sale']);
     }
 
     public function test_the_order_page_offers_then_reports_the_invoice(): void

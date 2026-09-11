@@ -184,9 +184,9 @@
                                 </td>
 
                                 <td class="{{ $td }} whitespace-nowrap">
-                                    @if ($order->invoice)
-                                        <span class="inline-flex rounded px-2 py-0.5 text-xs font-semibold {{ $order->invoice->statusClasses() }}">
-                                            {{ $order->invoice->statusLabel() }}
+                                    @if ($order->isFinal())
+                                        <span class="inline-flex rounded px-2 py-0.5 text-xs font-semibold {{ $order->statusClasses() }}">
+                                            {{ $order->customerStatusLabel() }}
                                         </span>
                                     @else
                                         <span class="text-muted">&mdash;</span>
