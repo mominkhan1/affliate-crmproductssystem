@@ -55,6 +55,10 @@ class DashboardController extends Controller
         $adminCommission = (float) $scope()->whereIn('status', Order::EARNING_STATUSES)->sum('admin_commission_total');
         $totalCommission = $userCommission + $adminCommission;
 
+        // Only orders currently sitting in "Sale" — not active_account/paid — count here.
+        $saleOrders = (int) $counts->get('sale', 0);
+        $saleAdminCommission = (float) $scope()->where('status', 'sale')->sum('admin_commission_total');
+
         $series = $this->series($scope, $from, $to);
 
         return view('admin.dashboard', [
@@ -78,7 +82,7 @@ class DashboardController extends Controller
             'userCommission' => $userCommission,
             'adminCommission' => $adminCommission,
             'totalCommission' => $totalCommission,
-            'averageOrder' => $completedOrders > 0 ? $revenue / $completedOrders : 0.0,
+            'averageSaleCommission' => $saleOrders > 0 ? $saleAdminCommission / $saleOrders : 0.0,
             'conversionRate' => $totalOrders > 0 ? $completedOrders / $totalOrders * 100 : 0.0,
 
             'series' => $series,

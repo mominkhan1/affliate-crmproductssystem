@@ -279,7 +279,7 @@
                 ['label' => 'User Commission', 'value' => $userCommission, 'token' => 'success'],
                 ['label' => 'Admin Commission', 'value' => $adminCommission, 'token' => 'info'],
                 ['label' => 'Total Commission', 'value' => $totalCommission, 'token' => 'warning'],
-                ['label' => 'Avg. Order Value', 'value' => $averageOrder, 'token' => 'accent2'],
+                ['label' => 'Avg. Sale Commission', 'value' => $averageSaleCommission, 'token' => 'accent2'],
             ];
         @endphp
         @foreach ($money as $item)
