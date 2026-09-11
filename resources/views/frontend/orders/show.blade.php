@@ -58,6 +58,12 @@
                         <dt class="text-xs uppercase tracking-wider text-muted">Delivery Address</dt>
                         <dd class="mt-1 whitespace-pre-line rounded-xl border border-line bg-elevated p-3 text-sm font-medium text-ink">{{ $order->address }}</dd>
                     </div>
+                    @if (filled($order->notes))
+                        <div class="sm:col-span-2">
+                            <dt class="text-xs uppercase tracking-wider text-muted">Notes</dt>
+                            <dd class="mt-1 whitespace-pre-line rounded-xl border border-line bg-elevated p-3 text-sm font-medium text-ink">{{ $order->notes }}</dd>
+                        </div>
+                    @endif
                 </dl>
             </div>
 

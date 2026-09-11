@@ -274,9 +274,9 @@
                     @endforeach
 
                     <div>
-                        <label for="notes" class="mb-1.5 block text-sm font-medium text-ink">Internal Notes</label>
+                        <label for="notes" class="mb-1.5 block text-sm font-medium text-ink">Notes</label>
                         <textarea name="notes" id="notes" rows="7"
-                                  placeholder="Visible to admins only"
+                                  placeholder="Visible to the customer on their order page"
                                   class="w-full rounded-xl border bg-elevated px-3.5 py-2.5 text-sm text-ink placeholder-muted transition focus:outline-none focus:ring-2 focus:ring-accent/30
                                          {{ $errors->has('notes') ? 'border-danger' : 'border-line focus:border-accent' }}">{{ old('notes', $order->notes) }}</textarea>
                         @error('notes')
