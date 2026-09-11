@@ -247,7 +247,7 @@ class CustomerOrderController extends Controller
             'oldest' => $query->oldest(),
             'total_desc' => $query->orderByDesc('total_price'),
             'total_asc' => $query->orderBy('total_price'),
-            default => $query->latest(),
+            default => $query->latest('id'),
         };
     }
 

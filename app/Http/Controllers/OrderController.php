@@ -51,7 +51,7 @@ class OrderController extends Controller
 
         $orders = $scope()
             ->with(['product', 'productPrice', 'invoice'])
-            ->latest()
+            ->latest('id')
             ->paginate(10)
             ->withQueryString();
 

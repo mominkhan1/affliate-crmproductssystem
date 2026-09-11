@@ -91,7 +91,7 @@ class DashboardController extends Controller
 
             'recentOrders' => $scope()
                 ->with(['product', 'productPrice'])
-                ->latest()
+                ->latest('id')
                 ->take(5)
                 ->get(),
 

@@ -293,7 +293,7 @@ class OrderController extends Controller
             'total_desc' => $query->orderByDesc('total_price'),
             'total_asc' => $query->orderBy('total_price'),
             'commission_desc' => $query->orderByDesc('user_commission_total'),
-            default => $query->latest(),
+            default => $query->latest('id'),
         };
     }
 
