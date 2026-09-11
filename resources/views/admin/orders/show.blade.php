@@ -158,7 +158,7 @@
                 </div>
             @endif
 
-            @if ($order->hasVoiceNote())
+            @if ($order->voiceNotes->isNotEmpty())
                 <div class="rise rounded-2xl border border-line bg-card p-5 sm:p-6" style="--delay: 100ms">
                     <div class="mb-3 flex items-center gap-2.5">
                         <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/10 text-accent">
@@ -166,26 +166,31 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-14 0m7 7v3m0-6a4 4 0 01-4-4V6a4 4 0 118 0v5a4 4 0 01-4 4z"/>
                             </svg>
                         </span>
-                        <div>
-                            <h2 class="text-sm font-semibold text-ink">Customer Voice Note</h2>
-                            <p class="text-xs text-muted">
-                                {{ $order->voice_note_name }} &middot;
-                                added {{ $order->voice_note_uploaded_at?->timezone(config('app.display_timezone'))->diffForHumans() }}
-                            </p>
-                        </div>
+                        <h2 class="text-sm font-semibold text-ink">Customer Voice Notes</h2>
                     </div>
 
-                    <audio controls preload="metadata" class="w-full">
-                        <source src="{{ $order->voiceNoteUrl() }}">
-                    </audio>
+                    <div class="space-y-4">
+                        @foreach ($order->voiceNotes as $voiceNote)
+                            <div @if (! $loop->first) class="border-t border-line pt-4" @endif>
+                                <p class="mb-2 text-xs text-muted">
+                                    {{ $voiceNote->name }} &middot;
+                                    added {{ $voiceNote->created_at->timezone(config('app.display_timezone'))->diffForHumans() }}
+                                </p>
 
-                    <a href="{{ $order->voiceNoteUrl() }}" download
-                       class="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-muted transition hover:border-accent hover:text-accent">
-                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-9-4l4 4m0 0l4-4m-4 4V4"/>
-                        </svg>
-                        Download
-                    </a>
+                                <audio controls preload="metadata" class="w-full">
+                                    <source src="{{ $voiceNote->url() }}">
+                                </audio>
+
+                                <a href="{{ $voiceNote->url() }}" download
+                                   class="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-muted transition hover:border-accent hover:text-accent">
+                                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-9-4l4 4m0 0l4-4m-4 4V4"/>
+                                    </svg>
+                                    Download
+                                </a>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
             @endif
 

@@ -156,7 +156,7 @@
                                 <td class="{{ $td }} text-left font-semibold text-ink">
                                     <span class="flex items-center gap-1.5">
                                         <span class="truncate">{{ $order->full_name }}</span>
-                                        @if ($order->hasVoiceNote())
+                                        @if ($order->hasVoiceNotes())
                                             <svg class="h-3.5 w-3.5 shrink-0 text-brand" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-14 0m7 7v3m0-6a4 4 0 01-4-4V6a4 4 0 118 0v5a4 4 0 01-4 4z"/>
                                             </svg>

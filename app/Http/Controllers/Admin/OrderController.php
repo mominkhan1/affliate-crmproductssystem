@@ -94,7 +94,7 @@ class OrderController extends Controller
      */
     public function show(Order $order): View
     {
-        $order->load(['product', 'productPrice', 'user', 'invoice']);
+        $order->load(['product', 'productPrice', 'user', 'invoice', 'voiceNotes']);
 
         return view('admin.orders.show', [
             'order' => $order,
@@ -214,12 +214,10 @@ class OrderController extends Controller
      */
     public function forceDelete(int $orderId): RedirectResponse
     {
-        $order = Order::onlyTrashed()->findOrFail($orderId);
+        $order = Order::onlyTrashed()->with('voiceNotes')->findOrFail($orderId);
 
-        // Take the voice note with it, so nothing is orphaned on disk.
-        if ($order->voice_note_path) {
-            Storage::disk('public')->delete($order->voice_note_path);
-        }
+        // Take every voice note with it, so nothing is orphaned on disk.
+        Storage::disk('public')->delete($order->voiceNotes->pluck('path')->all());
 
         $order->forceDelete();
 

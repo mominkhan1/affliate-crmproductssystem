@@ -51,7 +51,7 @@ Route::middleware(['auth', 'customer'])->group(function () {
     Route::get('/orders', [CustomerOrderController::class, 'index'])->name('order.list');
     Route::get('/orders/{order}', [CustomerOrderController::class, 'show'])->name('order.show');
     Route::post('/orders/{order}/voice-note', [CustomerOrderController::class, 'storeVoiceNote'])->name('order.voice-note.store');
-    Route::delete('/orders/{order}/voice-note', [CustomerOrderController::class, 'destroyVoiceNote'])->name('order.voice-note.destroy');
+    Route::delete('/orders/{order}/voice-note/{voiceNote}', [CustomerOrderController::class, 'destroyVoiceNote'])->name('order.voice-note.destroy');
     Route::post('/orders/{order}/invoice', [InvoiceController::class, 'store'])->name('order.invoice.store');
 
     // Claiming for a week's work, rather than one order at a time.

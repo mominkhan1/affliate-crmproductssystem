@@ -190,41 +190,45 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-14 0m7 7v3m0-6a4 4 0 01-4-4V6a4 4 0 118 0v5a4 4 0 01-4 4z"/>
                         </svg>
                     </span>
-                    <h2 class="text-sm font-semibold text-ink">Voice Note</h2>
+                    <h2 class="text-sm font-semibold text-ink">Voice Notes</h2>
                 </div>
                 <p class="mb-4 text-xs text-muted">
-                    Attach a recording for our team. You can replace it whenever you like.
+                    Attach one or more recordings for our team. Uploading a new one keeps the rest.
                 </p>
 
-                @if ($order->hasVoiceNote())
-                    <div class="mb-4 rounded-xl border border-line bg-elevated p-3">
-                        <audio controls preload="metadata" class="w-full">
-                            <source src="{{ $order->voiceNoteUrl() }}">
-                        </audio>
+                @if ($order->voiceNotes->isNotEmpty())
+                    <div class="mb-4 space-y-3">
+                        @foreach ($order->voiceNotes as $voiceNote)
+                            <div class="rounded-xl border border-line bg-elevated p-3">
+                                <audio controls preload="metadata" class="w-full">
+                                    <source src="{{ $voiceNote->url() }}">
+                                </audio>
 
-                        <p class="mt-2 truncate text-xs font-medium text-ink">{{ $order->voice_note_name }}</p>
-                        <p class="text-[11px] text-muted">
-                            Added {{ $order->voice_note_uploaded_at?->timezone(config('app.display_timezone'))->diffForHumans() }}
-                        </p>
+                                <p class="mt-2 truncate text-xs font-medium text-ink">{{ $voiceNote->name }}</p>
+                                <p class="text-[11px] text-muted">
+                                    Added {{ $voiceNote->created_at->timezone(config('app.display_timezone'))->diffForHumans() }}
+                                </p>
 
-                        <div class="mt-3 flex flex-wrap items-center gap-2">
-                            <a href="{{ $order->voiceNoteUrl() }}" download
-                               class="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-muted transition hover:border-brand hover:text-brand">
-                                Download
-                            </a>
+                                <div class="mt-3 flex flex-wrap items-center gap-2">
+                                    <a href="{{ $voiceNote->url() }}" download
+                                       class="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-muted transition hover:border-brand hover:text-brand">
+                                        Download
+                                    </a>
 
-                            <form method="POST" action="{{ route('order.voice-note.destroy', $order) }}"
-                                  data-confirm-title="Remove voice note"
-                                  data-confirm="This recording will be deleted from your order. You can upload a new one afterwards."
-                                  data-confirm-text="Remove">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit"
-                                        class="rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-medium text-danger transition hover:bg-danger hover:text-white">
-                                    Remove
-                                </button>
-                            </form>
-                        </div>
+                                    <form method="POST" action="{{ route('order.voice-note.destroy', [$order, $voiceNote]) }}"
+                                          data-confirm-title="Remove voice note"
+                                          data-confirm="This recording will be deleted from your order."
+                                          data-confirm-text="Remove">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit"
+                                                class="rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-medium text-danger transition hover:bg-danger hover:text-white">
+                                            Remove
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        @endforeach
                     </div>
                 @endif
 
@@ -233,7 +237,7 @@
                     @csrf
 
                     <p class="mb-1.5 text-xs font-medium uppercase tracking-wider text-muted">
-                        {{ $order->hasVoiceNote() ? 'Replace recording' : 'Upload a recording' }}
+                        Upload a recording
                     </p>
 
                     {{-- Drop zone --}}
@@ -302,7 +306,7 @@
                     <div class="flex items-center gap-2">
                         <button type="submit" id="voice-submit" disabled
                                 class="cta flex-1 rounded-xl bg-gradient-to-r from-brand to-brand2 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand/25 disabled:cursor-not-allowed disabled:opacity-50">
-                            <span id="voice-label">{{ $order->hasVoiceNote() ? 'Replace Voice Note' : 'Upload Voice Note' }}</span>
+                            <span id="voice-label">Upload Voice Note</span>
                         </button>
 
                         <button type="button" id="voice-cancel"

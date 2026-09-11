@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\FormField;
 use App\Models\Order;
+use App\Models\OrderVoiceNote;
 use App\Models\Product;
 use App\Support\DateRange;
 use App\Support\OrderFilters;
@@ -56,7 +57,7 @@ class CustomerOrderController extends Controller
         $filters = $this->filters($request);
 
         $query = $request->user()->orders()
-            ->with(['product', 'productPrice', 'invoice'])
+            ->with(['product', 'productPrice', 'invoice', 'voiceNotes'])
             ->tap(fn (Builder $q) => $this->applyFilters($q, $filters));
 
         $totalOrders = (clone $query)->count();
@@ -92,7 +93,7 @@ class CustomerOrderController extends Controller
     {
         $this->authorizeOrder($request, $order);
 
-        $order->load(['product', 'productPrice', 'invoice']);
+        $order->load(['product', 'productPrice', 'invoice', 'voiceNotes']);
 
         return view('frontend.orders.show', [
             'order' => $order,
@@ -104,7 +105,7 @@ class CustomerOrderController extends Controller
     }
 
     /**
-     * Attach or replace the voice note on an order.
+     * Attach another voice note to an order.
      */
     public function storeVoiceNote(Request $request, Order $order): RedirectResponse|JsonResponse
     {
@@ -131,8 +132,6 @@ class CustomerOrderController extends Controller
             'voice_note.extensions' => 'Use an audio recording, for example MP3, M4A, WAV, OGG or AMR.',
         ]);
 
-        $previous = $order->voice_note_path;
-
         $file = $request->file('voice_note');
 
         // Keep the uploader's own extension. Guessing it from the file's
@@ -140,53 +139,41 @@ class CustomerOrderController extends Controller
         // then neither play in the browser nor pick the right player.
         $extension = strtolower($file->getClientOriginalExtension() ?: 'bin');
 
-        $order->update([
-            'voice_note_path' => $file->storeAs(
+        $voiceNote = $order->voiceNotes()->create([
+            'path' => $file->storeAs(
                 'voice-notes',
                 Str::random(40).'.'.$extension,
                 'public',
             ),
-            'voice_note_name' => $file->getClientOriginalName(),
-            'voice_note_uploaded_at' => now(),
+            'name' => $file->getClientOriginalName(),
         ]);
-
-        // Replacing should not leave the old recording behind.
-        if ($previous) {
-            Storage::disk('public')->delete($previous);
-        }
-
-        $message = $previous ? 'Voice note replaced.' : 'Voice note uploaded.';
 
         if ($request->expectsJson()) {
             return response()->json([
-                'message' => $message,
-                'name' => $order->voice_note_name,
-                'url' => $order->voiceNoteUrl(),
-                'added' => $order->voice_note_uploaded_at?->timezone(config('app.display_timezone'))->diffForHumans(),
+                'message' => 'Voice note uploaded.',
+                'id' => $voiceNote->id,
+                'name' => $voiceNote->name,
+                'url' => $voiceNote->url(),
+                'added' => $voiceNote->created_at->timezone(config('app.display_timezone'))->diffForHumans(),
             ]);
         }
 
         return redirect()
             ->route('order.show', $order)
-            ->with('status', $message);
+            ->with('status', 'Voice note uploaded.');
     }
 
     /**
-     * Remove the voice note from an order.
+     * Remove one voice note from an order.
      */
-    public function destroyVoiceNote(Request $request, Order $order): RedirectResponse
+    public function destroyVoiceNote(Request $request, Order $order, OrderVoiceNote $voiceNote): RedirectResponse
     {
         $this->authorizeOrder($request, $order);
 
-        if ($order->voice_note_path) {
-            Storage::disk('public')->delete($order->voice_note_path);
-        }
+        abort_unless($voiceNote->order_id === $order->id, 404);
 
-        $order->update([
-            'voice_note_path' => null,
-            'voice_note_name' => null,
-            'voice_note_uploaded_at' => null,
-        ]);
+        Storage::disk('public')->delete($voiceNote->path);
+        $voiceNote->delete();
 
         return redirect()
             ->route('order.show', $order)

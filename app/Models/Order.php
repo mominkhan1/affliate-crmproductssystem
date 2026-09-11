@@ -8,9 +8,9 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Storage;
 
 #[Fillable([
     'user_id',
@@ -31,9 +31,6 @@ use Illuminate\Support\Facades\Storage;
     'paid_date',
     'notes',
     'form_data',
-    'voice_note_path',
-    'voice_note_name',
-    'voice_note_uploaded_at',
 ])]
 class Order extends Model
 {
@@ -182,7 +179,6 @@ class Order extends Model
             'return_date' => 'date',
             'paid_date' => 'date',
             'form_data' => 'array',
-            'voice_note_uploaded_at' => 'datetime',
         ];
     }
 
@@ -204,6 +200,14 @@ class Order extends Model
     public function invoice(): HasOne
     {
         return $this->hasOne(Invoice::class);
+    }
+
+    /**
+     * Every recording attached to this order, newest first.
+     */
+    public function voiceNotes(): HasMany
+    {
+        return $this->hasMany(OrderVoiceNote::class)->orderByDesc('id');
     }
 
     /**
@@ -402,21 +406,11 @@ class Order extends Model
     }
 
     /**
-     * Whether a voice note is attached.
+     * Whether any voice note is attached.
      */
-    public function hasVoiceNote(): bool
+    public function hasVoiceNotes(): bool
     {
-        return filled($this->voice_note_path);
-    }
-
-    /**
-     * Public URL of the attached voice note, if any.
-     */
-    public function voiceNoteUrl(): ?string
-    {
-        return $this->hasVoiceNote()
-            ? Storage::disk('public')->url($this->voice_note_path)
-            : null;
+        return $this->voiceNotes->isNotEmpty();
     }
 
     /**

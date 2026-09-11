@@ -92,14 +92,14 @@ class VoiceNoteUploadTest extends TestCase
 
             $this->upload($file)->assertRedirect(route('order.show', $this->order));
 
-            $this->order->refresh();
+            $latest = $this->order->voiceNotes()->first();
 
             $this->assertSame(
                 $extension,
-                pathinfo($this->order->voice_note_path, PATHINFO_EXTENSION),
+                pathinfo($latest->path, PATHINFO_EXTENSION),
                 "the .{$extension} upload did not keep its extension",
             );
-            Storage::disk('public')->assertExists($this->order->voice_note_path);
+            Storage::disk('public')->assertExists($latest->path);
         }
     }
 
@@ -108,7 +108,7 @@ class VoiceNoteUploadTest extends TestCase
         $this->upload(UploadedFile::fake()->create('clip.mp4', 64, 'video/mp4'))
             ->assertSessionHasErrors('voice_note');
 
-        $this->assertNull($this->order->fresh()->voice_note_path);
+        $this->assertSame(0, $this->order->voiceNotes()->count());
     }
 
     public function test_a_video_renamed_to_an_audio_extension_is_rejected(): void
@@ -116,7 +116,7 @@ class VoiceNoteUploadTest extends TestCase
         $this->upload(UploadedFile::fake()->create('sneaky.mp3', 64, 'video/mp4'))
             ->assertSessionHasErrors('voice_note');
 
-        $this->assertNull($this->order->fresh()->voice_note_path);
+        $this->assertSame(0, $this->order->voiceNotes()->count());
     }
 
     public function test_a_file_over_the_limit_is_rejected(): void
@@ -124,7 +124,7 @@ class VoiceNoteUploadTest extends TestCase
         $this->upload(UploadedFile::fake()->create('huge.mp3', 102401, 'audio/mpeg'))
             ->assertSessionHasErrors('voice_note');
 
-        $this->assertNull($this->order->fresh()->voice_note_path);
+        $this->assertSame(0, $this->order->voiceNotes()->count());
     }
 
     public function test_the_limit_is_the_smaller_of_our_ceiling_and_php(): void
@@ -150,17 +150,51 @@ class VoiceNoteUploadTest extends TestCase
         );
     }
 
-    public function test_replacing_a_note_deletes_the_old_file(): void
+    public function test_uploading_a_second_note_keeps_the_first(): void
     {
         $this->upload(UploadedFile::fake()->create('first.mp3', 32, 'audio/mpeg'));
-        $first = $this->order->fresh()->voice_note_path;
+        $first = $this->order->voiceNotes()->first()->path;
 
         $this->upload(UploadedFile::fake()->create('second.wav', 32, 'audio/wav'));
-        $second = $this->order->fresh()->voice_note_path;
 
-        $this->assertNotSame($first, $second);
-        Storage::disk('public')->assertMissing($first);
-        Storage::disk('public')->assertExists($second);
+        $this->assertSame(2, $this->order->voiceNotes()->count());
+        Storage::disk('public')->assertExists($first);
+    }
+
+    public function test_removing_one_note_leaves_the_other_alone(): void
+    {
+        $this->upload(UploadedFile::fake()->create('first.mp3', 32, 'audio/mpeg'));
+        $first = $this->order->voiceNotes()->first();
+
+        $this->upload(UploadedFile::fake()->create('second.wav', 32, 'audio/wav'));
+        $second = $this->order->voiceNotes()->first();
+
+        $this->actingAs($this->customer)
+            ->delete(route('order.voice-note.destroy', [$this->order, $first]))
+            ->assertRedirect(route('order.show', $this->order));
+
+        $this->assertSame(1, $this->order->voiceNotes()->count());
+        Storage::disk('public')->assertMissing($first->path);
+        Storage::disk('public')->assertExists($second->path);
+    }
+
+    public function test_another_customer_cannot_delete_a_note_from_this_order(): void
+    {
+        $this->upload(UploadedFile::fake()->create('first.mp3', 32, 'audio/mpeg'));
+        $note = $this->order->voiceNotes()->first();
+
+        $other = User::create([
+            'name' => 'Other',
+            'email' => 'other-delete@example.com',
+            'password' => bcrypt('secret1234'),
+            'role' => 'user',
+        ]);
+
+        $this->actingAs($other)
+            ->delete(route('order.voice-note.destroy', [$this->order, $note]))
+            ->assertNotFound();
+
+        Storage::disk('public')->assertExists($note->path);
     }
 
     public function test_the_uploader_gets_json_back(): void
