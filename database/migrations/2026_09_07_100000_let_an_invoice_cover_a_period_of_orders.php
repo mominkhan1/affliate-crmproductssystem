@@ -23,7 +23,9 @@ return new class extends Migration
         });
 
         // A period invoice belongs to no single order.
-        DB::statement('ALTER TABLE invoices MODIFY order_id BIGINT UNSIGNED NULL');
+        Schema::table('invoices', function (Blueprint $table) {
+            $table->unsignedBigInteger('order_id')->nullable()->change();
+        });
 
         Schema::create('invoice_order', function (Blueprint $table) {
             $table->id();
@@ -72,6 +74,8 @@ return new class extends Migration
             $table->dropColumn(['period_start', 'period_end']);
         });
 
-        DB::statement('ALTER TABLE invoices MODIFY order_id BIGINT UNSIGNED NOT NULL');
+        Schema::table('invoices', function (Blueprint $table) {
+            $table->unsignedBigInteger('order_id')->nullable(false)->change();
+        });
     }
 };
