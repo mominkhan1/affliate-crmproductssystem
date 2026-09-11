@@ -185,23 +185,17 @@
     {{-- Results --}}
     <div class="rise relative z-0 overflow-hidden rounded-2xl border border-line bg-card" style="--delay: 120ms">
         <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
+            <table class="w-full table-fixed text-left text-sm">
                 <thead class="bg-elevated text-xs uppercase tracking-wider text-muted">
                     <tr>
-                        <th class="px-4 py-3.5 font-medium">ID</th>
-                        <th class="px-4 py-3.5 font-medium">Submitted By</th>
-                        <th class="px-4 py-3.5 font-medium">Full Name</th>
-                        <th class="px-4 py-3.5 font-medium">Email</th>
-                        <th class="px-4 py-3.5 font-medium">Phone</th>
-                        <th class="px-4 py-3.5 font-medium">Product</th>
-                        <th class="px-4 py-3.5 font-medium">Price Label</th>
-                        <th class="px-4 py-3.5 font-medium">Qty</th>
-                        <th class="px-4 py-3.5 font-medium">Total</th>
-                        <th class="px-4 py-3.5 font-medium">User Commission</th>
-                        <th class="px-4 py-3.5 font-medium">Admin Commission</th>
-                        <th class="px-4 py-3.5 font-medium">Status</th>
-                        <th class="px-4 py-3.5 font-medium">Submitted</th>
-                        <th class="px-4 py-3.5 text-right font-medium">Actions</th>
+                        <th class="w-[8%] px-3 py-3.5 font-medium md:w-[6%] lg:w-[5%] lg:px-4">ID</th>
+                        <th class="hidden lg:table-cell lg:w-[15%] lg:px-4 lg:py-3.5 lg:font-medium">Submitted By</th>
+                        <th class="w-[34%] px-3 py-3.5 font-medium md:w-[26%] lg:w-[19%] lg:px-4">Customer</th>
+                        <th class="hidden md:table-cell md:w-[17%] md:px-4 md:py-3.5 md:font-medium lg:w-[13%]">Product</th>
+                        <th class="w-[21%] px-3 py-3.5 font-medium md:w-[17%] lg:w-[13%] lg:px-4">Total</th>
+                        <th class="w-[27%] px-3 py-3.5 font-medium md:w-[24%] lg:w-[17%] lg:px-4">Status</th>
+                        <th class="hidden lg:table-cell lg:w-[10%] lg:px-4 lg:py-3.5 lg:font-medium">Submitted</th>
+                        <th class="w-[10%] px-3 py-3.5 text-right font-medium md:w-[10%] lg:w-[8%] lg:px-4">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-line">
@@ -209,35 +203,53 @@
                         <tr id="order-row-{{ $order->id }}"
                             class="row-hover cursor-pointer transition-all duration-300 hover:bg-elevated"
                             onclick="window.location='{{ route('admin.orders.show', $order) }}'">
-                            <td class="whitespace-nowrap px-4 py-3.5 font-semibold text-accent">#{{ $order->id }}</td>
-                            <td class="whitespace-nowrap px-4 py-3.5">
+                            <td class="truncate px-3 py-3.5 font-semibold text-accent lg:px-4">#{{ $order->id }}</td>
+
+                            <td class="hidden lg:table-cell lg:px-4 lg:py-3.5">
                                 @if ($order->user)
-                                    <div class="flex items-center gap-2">
+                                    <div class="flex min-w-0 items-center gap-2">
                                         <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent/10 text-[11px] font-bold text-accent">
                                             {{ Str::upper(Str::substr($order->user->name, 0, 1)) }}
                                         </span>
-                                        <span>
-                                            <span class="block font-medium text-ink">{{ $order->user->name }}</span>
-                                            <span class="block text-xs text-muted">{{ $order->user->email }}</span>
+                                        <span class="min-w-0">
+                                            <span class="block truncate font-medium text-ink">{{ $order->user->name }}</span>
+                                            <span class="block truncate text-xs text-muted">{{ $order->user->email }}</span>
                                         </span>
                                     </div>
                                 @else
                                     <span class="text-xs text-muted">Account removed</span>
                                 @endif
                             </td>
-                            <td class="whitespace-nowrap px-4 py-3.5 font-medium text-ink">{{ $order->full_name }}</td>
-                            <td class="whitespace-nowrap px-4 py-3.5 text-muted">{{ $order->email }}</td>
-                            <td class="whitespace-nowrap px-4 py-3.5 text-muted">{{ $order->phone }}</td>
-                            <td class="whitespace-nowrap px-4 py-3.5 text-muted">{{ $order->product?->name ?? '—' }}</td>
-                            <td class="whitespace-nowrap px-4 py-3.5 text-muted">{{ $order->productPrice?->label ?? '—' }}</td>
-                            <td class="px-4 py-3.5 text-muted">{{ $order->quantity }}</td>
-                            <td class="whitespace-nowrap px-4 py-3.5 font-semibold text-ink">${{ number_format($order->total_price, 2) }}</td>
-                            <td class="whitespace-nowrap px-4 py-3.5 font-semibold text-success">${{ number_format($order->user_commission_total, 2) }}</td>
-                            <td class="whitespace-nowrap px-4 py-3.5 font-semibold text-info">${{ number_format($order->admin_commission_total, 2) }}</td>
-                            <td class="px-4 py-3.5" onclick="event.stopPropagation()">
+
+                            <td class="min-w-0 px-3 py-3.5 lg:px-4">
+                                <p class="truncate font-medium text-ink">{{ $order->full_name }}</p>
+                                <p class="truncate text-xs text-muted">{{ $order->email }}</p>
+                                <p class="truncate text-xs text-muted">{{ $order->phone }}</p>
+                            </td>
+
+                            <td class="hidden min-w-0 md:table-cell md:px-4 md:py-3.5">
+                                <p class="truncate font-medium text-ink">{{ $order->product?->name ?? '—' }}</p>
+                                <p class="truncate text-xs text-muted">{{ $order->productPrice?->label ?? '—' }}</p>
+                            </td>
+
+                            <td class="min-w-0 px-3 py-3.5 lg:px-4">
+                                <p class="truncate font-semibold text-ink">
+                                    ${{ number_format($order->total_price, 2) }}
+                                    @if ($order->quantity !== 1)
+                                        <span class="font-normal text-muted">&times;{{ $order->quantity }}</span>
+                                    @endif
+                                </p>
+                                <p class="truncate text-[11px]">
+                                    <span class="font-medium text-success">${{ number_format($order->user_commission_total, 2) }}</span>
+                                    <span class="text-muted">/</span>
+                                    <span class="font-medium text-info">${{ number_format($order->admin_commission_total, 2) }}</span>
+                                </p>
+                            </td>
+
+                            <td class="min-w-0 px-3 py-3.5 lg:px-4" onclick="event.stopPropagation()">
                                 <div class="status-cell" data-order="{{ $order->id }}">
-                                    <div class="relative inline-block">
-                                        <select class="status-select w-full min-w-[9.5rem] cursor-pointer appearance-none rounded-full border-0 py-1 pl-2.5 pr-7 text-xs font-medium transition focus:outline-none focus:ring-2 focus:ring-accent/40 {{ $order->statusClasses() }}"
+                                    <div class="relative inline-block max-w-full">
+                                        <select class="status-select w-full min-w-0 cursor-pointer appearance-none rounded-full border-0 py-1 pl-2.5 pr-7 text-xs font-medium transition focus:outline-none focus:ring-2 focus:ring-accent/40 {{ $order->statusClasses() }}"
                                                 data-current="{{ $order->status }}"
                                                 aria-label="Change status of order #{{ $order->id }}">
                                             @foreach ($statusMeta as $value => $meta)
@@ -249,7 +261,7 @@
                                         </svg>
                                     </div>
 
-                                    <span class="status-meta mt-1 block whitespace-nowrap text-xs {{ $order->statusDateValue() ? 'font-medium text-info' : 'text-muted' }}">
+                                    <span class="status-meta mt-1 block truncate text-xs {{ $order->statusDateValue() ? 'font-medium text-info' : 'text-muted' }}">
                                         @if ($order->statusDateValue())
                                             {{ $order->statusDateLabel() }}: {{ $order->statusDateValue() }}
                                         @elseif ($order->statusChangedAt())
@@ -258,15 +270,15 @@
                                     </span>
                                 </div>
                             </td>
-                            <td class="whitespace-nowrap px-4 py-3.5">
-                                <span class="block text-ink">{{ $order->submittedAt()->format('M j, Y') }}</span>
-                                <span class="block text-xs text-muted">
+
+                            <td class="hidden lg:table-cell lg:px-4 lg:py-3.5">
+                                <span class="block truncate text-ink">{{ $order->submittedAt()->format('M j, Y') }}</span>
+                                <span class="block truncate text-xs text-muted">
                                     {{ $order->submittedAt()->format('g:i A') }}
-                                    &middot; {{ $order->submittedAt()->diffForHumans() }}
                                 </span>
                             </td>
 
-                            <td class="px-4 py-3.5" onclick="event.stopPropagation()">
+                            <td class="px-3 py-3.5 lg:px-4" onclick="event.stopPropagation()">
                                 <div class="flex items-center justify-end gap-1.5">
                                     <a href="{{ route('admin.orders.edit', $order) }}" title="Edit order"
                                        class="rounded-lg border border-line p-1.5 text-muted transition hover:border-accent hover:bg-accent/10 hover:text-accent">
@@ -287,7 +299,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="14" class="px-4 py-14 text-center">
+                            <td colspan="8" class="px-4 py-14 text-center">
                                 <p class="text-muted">No orders match these filters.</p>
                                 @if ($activeFilterCount > 0)
                                     <a href="{{ route('admin.orders.index') }}" class="mt-2 inline-block text-sm font-medium text-accent hover:underline">
