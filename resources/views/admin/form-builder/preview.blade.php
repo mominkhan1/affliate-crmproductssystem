@@ -63,6 +63,17 @@
                                 <select class="{{ $input }}"><option>Select a product first</option></select>
                             </div>
 
+                        @elseif ($field->key === 'team')
+                            <div class="{{ $span }}">
+                                <label class="mb-1.5 block text-sm font-medium text-ink">{{ $field->label }}</label>
+                                <select class="{{ $input }}">
+                                    <option>No team</option>
+                                    @foreach ($teams as $team)
+                                        <option>{{ $team->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
                         @elseif ($field->type === 'quantity')
                             <div class="{{ $span }}">
                                 <label class="mb-1.5 block text-sm font-medium text-ink">{{ $field->label }}<span class="text-danger">*</span></label>

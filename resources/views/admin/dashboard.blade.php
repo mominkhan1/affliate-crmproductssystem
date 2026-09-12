@@ -68,6 +68,7 @@
     }
 
     $topRevenue = collect($topProducts)->max('revenue') ?: 1;
+    $topStateCommission = collect($topStates)->max('commission') ?: 1;
 
     $cards = [
         [
@@ -75,16 +76,16 @@
             'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2',
         ],
         [
-            'label' => 'In Progress', 'value' => $openOrders, 'money' => false, 'token' => 'warning',
+            'label' => 'Paid', 'value' => $paidOrders, 'money' => false, 'token' => 'success',
             'icon' => 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
         ],
         [
-            'label' => 'Completed', 'value' => $completedOrders, 'money' => false, 'token' => 'success',
+            'label' => 'Sale', 'value' => $saleOrders, 'money' => false, 'token' => 'success',
             'icon' => 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
         ],
         [
-            'label' => 'Cancelled', 'value' => $cancelledOrders, 'money' => false, 'token' => 'danger',
-            'icon' => 'M6 18L18 6M6 6l12 12',
+            'label' => 'Post Date', 'value' => $postDateOrders, 'money' => false, 'token' => 'info',
+            'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
         ],
         [
             'label' => 'Chargebacks', 'value' => $chargebackOrders, 'money' => false, 'token' => 'danger',
@@ -105,7 +106,7 @@
     <form method="GET" action="{{ route('admin.dashboard') }}" id="dash-filter"
           class="rise relative z-20 mb-4 rounded-2xl border border-line bg-card p-4 sm:p-5">
 
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-6">
 
             <div class="sm:col-span-2 xl:col-span-1">
                 <label for="q" class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted">Search</label>
@@ -134,6 +135,18 @@
                     <option value="">All products</option>
                     @foreach ($products as $product)
                         <option value="{{ $product->id }}" @selected($filters['product_id'] === $product->id)>{{ $product->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label for="team_id" class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted">Team</label>
+                <select name="team_id" id="team_id" class="{{ $input }}">
+                    <option value="">All teams</option>
+                    @foreach ($teams as $team)
+                        <option value="{{ $team->id }}" @selected($filters['team_id'] === $team->id)>
+                            {{ $team->name }}{{ $team->user ? ' — '.$team->user->name : '' }}
+                        </option>
                     @endforeach
                 </select>
             </div>
@@ -273,13 +286,15 @@
     </div>
 
     {{-- Revenue strip --}}
-    <div class="rise mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" style="--delay: 280ms">
+    <div class="rise mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6" style="--delay: 280ms">
         @php
             $money = [
                 ['label' => 'User Commission', 'value' => $userCommission, 'token' => 'success'],
                 ['label' => 'Admin Commission', 'value' => $adminCommission, 'token' => 'info'],
                 ['label' => 'Total Commission', 'value' => $totalCommission, 'token' => 'warning'],
                 ['label' => 'Avg. Sale Commission', 'value' => $averageSaleCommission, 'token' => 'accent2'],
+                ['label' => 'Paid Commission', 'value' => $paidCommission, 'token' => 'success'],
+                ['label' => 'Chargeback Commission', 'value' => $chargebackCommission, 'token' => 'danger'],
             ];
         @endphp
         @foreach ($money as $item)
@@ -522,6 +537,30 @@
                 </table>
             </div>
         </div>
+
+        {{-- Top states --}}
+        <div class="rise rounded-2xl border border-line bg-card p-5" style="--delay: 580ms">
+            <h2 class="text-sm font-semibold text-ink">Top States</h2>
+            <p class="mt-0.5 text-xs text-muted">By commission</p>
+
+            <div class="mt-5 space-y-4">
+                @forelse ($topStates as $i => $state)
+                    <div>
+                        <div class="mb-1.5 flex items-center justify-between gap-3 text-sm">
+                            <span class="truncate font-medium text-ink">{{ $state['name'] }}</span>
+                            <span class="shrink-0 font-semibold text-muted">${{ number_format($state['commission'], 2) }}</span>
+                        </div>
+                        <div class="h-2 w-full overflow-hidden rounded-full bg-elevated">
+                            <div class="grow h-full rounded-full bg-gradient-to-r from-accent to-accent2"
+                                 style="width: {{ round($state['commission'] / $topStateCommission * 100) }}%; --delay: {{ 700 + $i * 90 }}ms"></div>
+                        </div>
+                        <p class="mt-1 text-xs text-muted">{{ $state['orders'] }} {{ Str::plural('order', $state['orders']) }}</p>
+                    </div>
+                @empty
+                    <p class="py-8 text-center text-sm text-muted">No state data yet.</p>
+                @endforelse
+            </div>
+        </div>
     </div>
 @endsection
 
@@ -542,7 +581,7 @@
             }
         });
 
-        ['product_id', 'status'].forEach(function (id) {
+        ['product_id', 'team_id', 'status'].forEach(function (id) {
             document.getElementById(id).addEventListener('change', function () {
                 form.submit();
             });

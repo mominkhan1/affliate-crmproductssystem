@@ -66,7 +66,7 @@
     <form method="GET" action="{{ route('order.history') }}" id="dash-filter"
           class="rise relative z-20 mb-4 rounded-2xl border border-line bg-card p-4 shadow-sm sm:p-5" style="--delay: 40ms">
 
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
 
             <div>
                 <label for="q" class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted">Search</label>
@@ -94,6 +94,16 @@
                     <option value="">All products</option>
                     @foreach ($products as $product)
                         <option value="{{ $product->id }}" @selected($filters['product_id'] === $product->id)>{{ $product->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label for="team_id" class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted">Team</label>
+                <select name="team_id" id="team_id" class="{{ $input }}">
+                    <option value="">All teams</option>
+                    @foreach ($teams as $team)
+                        <option value="{{ $team->id }}" @selected($filters['team_id'] === $team->id)>{{ $team->name }}</option>
                     @endforeach
                 </select>
             </div>
@@ -187,22 +197,23 @@
             </div>
 
             <div class="bg-card/60 p-5 sm:p-6">
-                <p class="text-xs font-semibold uppercase tracking-wider text-muted">Lifetime Value</p>
-                <p class="mt-2 text-2xl font-bold tracking-tight {{ $lifetime < 0 ? 'text-danger' : 'text-ink' }}">
-                    {{ $lifetime < 0 ? '-$'.number_format(abs($lifetime), 2) : '$'.number_format($lifetime, 2) }}
+                <p class="text-xs font-semibold uppercase tracking-wider text-muted">Paid Orders Value</p>
+                <p class="mt-2 text-2xl font-bold tracking-tight text-success">
+                    ${{ number_format($paidCommission, 2) }}
                 </p>
-                <p class="mt-2 text-xs text-muted">Earned plus pending{{ $activeFilterCount > 0 ? ', in this selection' : '' }}</p>
+                <p class="mt-2 text-xs text-muted">Commission on orders marked Paid{{ $activeFilterCount > 0 ? ', in this selection' : '' }}</p>
             </div>
         </div>
     </div>
 
     {{-- Supporting figures --}}
-    <div class="rise mb-4 grid grid-cols-2 gap-3 lg:grid-cols-5" style="--delay: 110ms">
+    <div class="rise mb-4 grid grid-cols-2 gap-3 lg:grid-cols-6" style="--delay: 110ms">
         @php
             $tiles = [
                 ['label' => 'Orders Submitted', 'value' => number_format($totalOrders), 'note' => $activeFilterCount > 0 ? 'Matching your filters' : 'All time'],
-                ['label' => 'Confirmed', 'value' => number_format($paidOrders), 'note' => number_format($conversionRate, 0).'% of your orders'],
+                ['label' => 'Paid', 'value' => number_format($paidOrders), 'note' => number_format($conversionRate, 0).'% of your orders'],
                 ['label' => 'In Progress', 'value' => number_format($newOrders), 'note' => 'Still being processed'],
+                ['label' => 'Post Date', 'value' => number_format($postDateOrders), 'note' => 'Payment date scheduled'],
                 ['label' => 'Chargebacks', 'value' => number_format($returningOrders), 'note' => $reversed > 0 ? '-$'.number_format($reversed, 2).' commission' : 'None so far'],
                 ['label' => 'Revenue Generated', 'value' => '$'.number_format($revenue, 2), 'note' => 'Value of confirmed orders'],
             ];
@@ -475,7 +486,7 @@
             }
         });
 
-        ['product_id', 'status'].forEach(function (id) {
+        ['product_id', 'team_id', 'status'].forEach(function (id) {
             document.getElementById(id).addEventListener('change', function () {
                 form.submit();
             });

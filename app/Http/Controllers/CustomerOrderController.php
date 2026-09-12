@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\FormField;
 use App\Models\Order;
-use App\Models\OrderVoiceNote;
 use App\Models\Product;
 use App\Support\DateRange;
 use App\Support\OrderFilters;
@@ -12,7 +11,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -60,14 +58,12 @@ class CustomerOrderController extends Controller
             ->with(['product', 'productPrice', 'invoice', 'voiceNotes'])
             ->tap(fn (Builder $q) => $this->applyFilters($q, $filters));
 
-        $totalOrders = (clone $query)->count();
-
-        // Commission only counts once a sale is done, and comes back off the
-        // total if that order later goes back — the same arithmetic the
-        // dashboard uses, so the two screens never disagree.
-        $confirmed = (float) (clone $query)->whereIn('status', Order::EARNING_STATUSES)->sum('user_commission_total');
-        $reversed = (float) (clone $query)->whereIn('status', Order::REVERSING_STATUSES)->sum('user_commission_total');
-        $returningOrders = (clone $query)->whereIn('status', Order::REVERSING_STATUSES)->count();
+        // Status counts reflect the current filter, not the whole table.
+        $statusCounts = (clone $query)
+            ->selectRaw('status, COUNT(*) as total')
+            ->reorder()
+            ->groupBy('status')
+            ->pluck('total', 'status');
 
         return view('frontend.orders.index', [
             'orders' => $query->paginate($filters['per_page'])->withQueryString(),
@@ -77,11 +73,8 @@ class CustomerOrderController extends Controller
             'perPageOptions' => self::PER_PAGE,
             'statusMeta' => Order::STATUS_META,
             'products' => Product::orderBy('name')->get(['id', 'name']),
-            'totalOrders' => $totalOrders,
-            'confirmed' => $confirmed,
-            'reversed' => $reversed,
-            'commission' => $confirmed - $reversed,
-            'returningOrders' => $returningOrders,
+            'totalOrders' => (int) $statusCounts->sum(),
+            'statusCounts' => $statusCounts,
             'activeFilterCount' => $this->activeFilterCount($filters),
         ]);
     }
@@ -93,7 +86,7 @@ class CustomerOrderController extends Controller
     {
         $this->authorizeOrder($request, $order);
 
-        $order->load(['product', 'productPrice', 'invoice', 'voiceNotes']);
+        $order->load(['product', 'productPrice', 'invoice', 'voiceNotes', 'activities']);
 
         return view('frontend.orders.show', [
             'order' => $order,
@@ -148,6 +141,8 @@ class CustomerOrderController extends Controller
             'name' => $file->getClientOriginalName(),
         ]);
 
+        $order->logActivity('Voice note added: '.$voiceNote->name, $request->user()->name);
+
         if ($request->expectsJson()) {
             return response()->json([
                 'message' => 'Voice note uploaded.',
@@ -161,23 +156,6 @@ class CustomerOrderController extends Controller
         return redirect()
             ->route('order.show', $order)
             ->with('status', 'Voice note uploaded.');
-    }
-
-    /**
-     * Remove one voice note from an order.
-     */
-    public function destroyVoiceNote(Request $request, Order $order, OrderVoiceNote $voiceNote): RedirectResponse
-    {
-        $this->authorizeOrder($request, $order);
-
-        abort_unless($voiceNote->order_id === $order->id, 404);
-
-        Storage::disk('public')->delete($voiceNote->path);
-        $voiceNote->delete();
-
-        return redirect()
-            ->route('order.show', $order)
-            ->with('status', 'Voice note removed.');
     }
 
     /**

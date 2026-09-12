@@ -7,7 +7,9 @@ use App\Http\Requests\Admin\EditOrderRequest;
 use App\Http\Requests\Admin\UpdateOrderRequest;
 use App\Models\FormField;
 use App\Models\Order;
+use App\Models\OrderVoiceNote;
 use App\Models\Product;
+use App\Models\Team;
 use App\Models\User;
 use App\Support\DateRange;
 use App\Support\OrderFilters;
@@ -53,20 +55,12 @@ class OrderController extends Controller
         $query = Order::with(['product', 'productPrice', 'user'])
             ->tap(fn (Builder $q) => $this->applyFilters($q, $filters));
 
-        // Totals reflect the current filter, not the whole table.
-        $totals = (clone $query)
-            ->selectRaw('COUNT(*) as orders, COALESCE(SUM(total_price), 0) as revenue')
+        // Status counts reflect the current filter, not the whole table.
+        $statusCounts = (clone $query)
+            ->selectRaw('status, COUNT(*) as total')
             ->reorder()
-            ->first();
-
-        // Commission is only real once an order has converted — the rest is
-        // still pipeline, not money earned, so it is summed separately from
-        // the count and revenue above rather than folded into the same row.
-        $commission = (clone $query)
-            ->whereIn('status', Order::EARNING_STATUSES)
-            ->selectRaw('COALESCE(SUM(user_commission_total), 0) as user_commission, COALESCE(SUM(admin_commission_total), 0) as admin_commission')
-            ->reorder()
-            ->first();
+            ->groupBy('status')
+            ->pluck('total', 'status');
 
         $orders = $query
             ->paginate($filters['per_page'])
@@ -76,15 +70,14 @@ class OrderController extends Controller
             'orders' => $orders,
             'filters' => $filters,
             'products' => Product::orderBy('name')->get(['id', 'name']),
+            'teams' => Team::with('user:id,name')->orderBy('name')->get(['id', 'user_id', 'name']),
             'customers' => User::where('role', 'user')->orderBy('name')->get(['id', 'name', 'email']),
             'periods' => self::PERIODS,
             'sorts' => self::SORTS,
             'perPageOptions' => self::PER_PAGE,
             'statusMeta' => Order::STATUS_META,
-            'totalOrders' => (int) ($totals->orders ?? 0),
-            'totalRevenue' => (float) ($totals->revenue ?? 0),
-            'totalUserCommission' => (float) ($commission->user_commission ?? 0),
-            'totalAdminCommission' => (float) ($commission->admin_commission ?? 0),
+            'totalOrders' => (int) $statusCounts->sum(),
+            'statusCounts' => $statusCounts,
             'activeFilterCount' => $this->activeFilterCount($filters),
         ]);
     }
@@ -94,7 +87,7 @@ class OrderController extends Controller
      */
     public function show(Order $order): View
     {
-        $order->load(['product', 'productPrice', 'user', 'invoice', 'voiceNotes']);
+        $order->load(['product', 'productPrice', 'team', 'user', 'invoice', 'voiceNotes', 'activities']);
 
         return view('admin.orders.show', [
             'order' => $order,
@@ -108,7 +101,22 @@ class OrderController extends Controller
      */
     public function update(UpdateOrderRequest $request, Order $order): RedirectResponse
     {
+        $oldStatus = $order->status;
+        $oldNotes = $order->notes;
+        $causer = $request->user()->name;
+
         $order->update($request->validated());
+
+        if ($order->status !== $oldStatus) {
+            $order->logActivity(
+                'Status changed from '.$this->statusLabel($oldStatus).' to '.$order->statusLabel().'.',
+                $causer,
+            );
+        }
+
+        if ($order->notes !== $oldNotes && filled($order->notes)) {
+            $order->logActivity('Note: '.$order->notes, $causer);
+        }
 
         return redirect()
             ->route('admin.orders.show', $order)
@@ -146,6 +154,8 @@ class OrderController extends Controller
                 array_filter((array) $request->input('form_data', []), fn ($v) => $v !== null),
             ),
         ]);
+
+        $order->logActivity('Order details were corrected.', $request->user()->name);
 
         return redirect()
             ->route('admin.orders.show', $order)
@@ -249,8 +259,17 @@ class OrderController extends Controller
             'paid_date.required' => 'Enter the date payment was collected.',
         ]);
 
+        $oldStatus = $order->status;
+
         $order->update($data);
         $order->refresh();
+
+        if ($order->status !== $oldStatus) {
+            $order->logActivity(
+                'Status changed from '.$this->statusLabel($oldStatus).' to '.$order->statusLabel().'.',
+                $request->user()->name,
+            );
+        }
 
         return response()->json([
             'status' => $order->status,
@@ -261,6 +280,28 @@ class OrderController extends Controller
             'changed_at' => $order->statusChangedAt()?->format('M j, g:i A'),
             'message' => 'Order #'.$order->id.' set to '.$order->statusLabel().'.',
         ]);
+    }
+
+    /**
+     * Remove one voice note from an order.
+     *
+     * Only an admin can do this — a customer's upload is kept as a record
+     * once it lands, so they can no longer take it back.
+     */
+    public function destroyVoiceNote(Request $request, Order $order, OrderVoiceNote $voiceNote): RedirectResponse
+    {
+        abort_unless($voiceNote->order_id === $order->id, 404);
+
+        $name = $voiceNote->name;
+
+        Storage::disk('public')->delete($voiceNote->path);
+        $voiceNote->delete();
+
+        $order->logActivity('Voice note removed: '.$name, $request->user()->name);
+
+        return redirect()
+            ->route('admin.orders.show', $order)
+            ->with('status', 'Voice note removed.');
     }
 
     /**
@@ -320,5 +361,14 @@ class OrderController extends Controller
     {
         return OrderFilters::activeCount($filters)
             + ($filters['sort'] !== 'newest' ? 1 : 0);
+    }
+
+    /**
+     * A status key's admin-facing label, for describing a transition even
+     * after the order has already moved on to the next status.
+     */
+    private function statusLabel(string $status): string
+    {
+        return Order::STATUS_META[$status]['label'] ?? $status;
     }
 }

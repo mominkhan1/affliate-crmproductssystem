@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\FormField;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Team;
 use App\Models\User;
 use App\Support\DateRange;
 use App\Support\OrderFilters;
@@ -57,18 +59,34 @@ class DashboardController extends Controller
 
         // Only orders currently sitting in "Sale" — not active_account/paid — count here.
         $saleOrders = (int) $counts->get('sale', 0);
-        $saleAdminCommission = (float) $scope()->where('status', 'sale')->sum('admin_commission_total');
+
+        $paidOrders = (int) $counts->get('paid', 0);
+        $postDateOrders = (int) $counts->get('post_date', 0);
+
+        // The commission tied to orders currently sitting in "Paid" — a
+        // slice of $totalCommission, since paid is one of EARNING_STATUSES.
+        $paidCommission = (float) $scope()->where('status', 'paid')
+            ->sum(DB::raw('user_commission_total + admin_commission_total'));
+
+        // Commission a chargeback claws back — not part of EARNING_STATUSES,
+        // so it needs its own sum rather than folding into $totalCommission.
+        $chargebackCommission = (float) $scope()->whereIn('status', Order::REVERSING_STATUSES)
+            ->sum(DB::raw('user_commission_total + admin_commission_total'));
 
         $series = $this->series($scope, $from, $to);
 
         return view('admin.dashboard', [
             'totalOrders' => $totalOrders,
-            'openOrders' => $sumFor(Order::OPEN_STATUSES),
+            'paidOrders' => $paidOrders,
+            'saleOrders' => $saleOrders,
+            'postDateOrders' => $postDateOrders,
             'completedOrders' => $completedOrders,
-            // Cancelled and Chargeback read as two different outcomes: one
-            // never converted, the other did and then came back.
-            'cancelledOrders' => $sumFor(Order::CANCELLED_STATUSES),
+            // Chargeback reads as a distinct outcome from the rest of the
+            // lost statuses: it only happens after an order was already a
+            // sale, so it's counted on its own via REVERSING_STATUSES.
             'chargebackOrders' => $sumFor(Order::REVERSING_STATUSES),
+            'chargebackCommission' => $chargebackCommission,
+            'paidCommission' => $paidCommission,
 
             'statusCounts' => collect(Order::STATUS_META)
                 ->map(fn ($meta, $key) => [
@@ -82,12 +100,13 @@ class DashboardController extends Controller
             'userCommission' => $userCommission,
             'adminCommission' => $adminCommission,
             'totalCommission' => $totalCommission,
-            'averageSaleCommission' => $saleOrders > 0 ? $saleAdminCommission / $saleOrders : 0.0,
+            'averageSaleCommission' => $saleOrders > 0 ? $totalCommission / $saleOrders : 0.0,
             'conversionRate' => $totalOrders > 0 ? $completedOrders / $totalOrders * 100 : 0.0,
 
             'series' => $series,
             'trend' => $this->trendPercentage($series),
             'topProducts' => $this->topProducts($scope),
+            'topStates' => $this->topStates($scope),
 
             'recentOrders' => $scope()
                 ->with(['product', 'productPrice'])
@@ -98,6 +117,7 @@ class DashboardController extends Controller
             'filters' => $filters,
             'periods' => DateRange::PERIODS,
             'products' => Product::orderBy('name')->get(['id', 'name']),
+            'teams' => Team::with('user:id,name')->orderBy('name')->get(['id', 'user_id', 'name']),
             'customers' => User::where('role', 'user')->orderBy('name')->get(['id', 'name', 'email']),
             'statusMeta' => Order::STATUS_META,
             'rangeLabel' => DateRange::label($filters['period'], $filters['from'], $filters['to']),
@@ -201,5 +221,40 @@ class DashboardController extends Controller
                 'orders' => (int) $row->orders,
                 'revenue' => (float) $row->revenue,
             ]);
+    }
+
+    /**
+     * The states generating the most commission within the range.
+     *
+     * "State" is a Form Builder field, not a real column — an admin can
+     * rename or remove it, so it's resolved by label rather than assuming
+     * a fixed form_data key. Orders that never answered it are excluded.
+     *
+     * Only EARNING_STATUSES count, same as the commission cards above —
+     * commission_total is pre-computed at order creation but isn't "earned"
+     * until the order actually converts.
+     */
+    private function topStates(callable $scope): Collection
+    {
+        $stateKey = FormField::where('label', 'State')->value('key');
+
+        if (! $stateKey) {
+            return collect();
+        }
+
+        return $scope()
+            ->whereNotNull('form_data')
+            ->whereIn('status', Order::EARNING_STATUSES)
+            ->get(['form_data', 'user_commission_total', 'admin_commission_total'])
+            ->filter(fn ($order) => filled($order->form_data[$stateKey] ?? null))
+            ->groupBy(fn ($order) => $order->form_data[$stateKey])
+            ->map(fn ($orders, $state) => [
+                'name' => $state,
+                'orders' => $orders->count(),
+                'commission' => (float) $orders->sum(fn ($order) => $order->user_commission_total + $order->admin_commission_total),
+            ])
+            ->sortByDesc('commission')
+            ->take(5)
+            ->values();
     }
 }

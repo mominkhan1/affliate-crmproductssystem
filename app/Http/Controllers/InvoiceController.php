@@ -265,7 +265,9 @@ class InvoiceController extends Controller
             $invoice = Invoice::create([
                 'order_id' => $order->id,
                 'user_id' => $request->user()->id,
-                'amount' => $order->total_price,
+                // What the customer earns, not the order's sale price —
+                // matches how a period invoice sums the same column.
+                'amount' => $order->user_commission_total,
                 'status' => 'pending',
                 'note' => $data['note'] ?? null,
             ]);

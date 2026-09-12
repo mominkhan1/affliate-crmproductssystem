@@ -14,17 +14,22 @@
             <p class="text-xs font-medium uppercase tracking-wider text-muted">Orders</p>
             <p class="mt-1 text-2xl font-bold text-ink">{{ number_format($totalOrders) }}</p>
         </div>
-        <div class="rounded-2xl border border-line bg-card p-4">
-            <p class="text-xs font-medium uppercase tracking-wider text-muted">Value</p>
-            <p class="mt-1 text-2xl font-bold text-accent">${{ number_format($totalRevenue, 2) }}</p>
-        </div>
-        <div class="rounded-2xl border border-line bg-card p-4">
-            <p class="text-xs font-medium uppercase tracking-wider text-muted">User Commission</p>
-            <p class="mt-1 text-2xl font-bold text-success">${{ number_format($totalUserCommission, 2) }}</p>
-        </div>
-        <div class="rounded-2xl border border-line bg-card p-4">
-            <p class="text-xs font-medium uppercase tracking-wider text-muted">Admin Commission</p>
-            <p class="mt-1 text-2xl font-bold text-info">${{ number_format($totalAdminCommission, 2) }}</p>
+
+        <div class="rounded-2xl border border-line bg-card p-4 xl:col-span-3">
+            <p class="mb-2.5 text-xs font-medium uppercase tracking-wider text-muted">By status</p>
+            <div class="flex flex-wrap gap-2">
+                @if ($statusCounts->isEmpty())
+                    <p class="text-sm text-muted">No orders match this filter.</p>
+                @else
+                    @foreach ($statusMeta as $key => $meta)
+                        @continue ($statusCounts->get($key, 0) == 0)
+                        <span class="inline-flex items-center gap-1.5 rounded-full bg-{{ $meta['tone'] }}/10 px-2.5 py-1 text-xs font-medium text-{{ $meta['tone'] }}">
+                            {{ $meta['label'] }}
+                            <span class="font-semibold">{{ (int) $statusCounts->get($key) }}</span>
+                        </span>
+                    @endforeach
+                @endif
+            </div>
         </div>
     </div>
 
@@ -32,7 +37,7 @@
     <form method="GET" action="{{ route('admin.orders.index') }}" id="filter-form"
           class="rise relative z-20 mb-4 rounded-2xl border border-line bg-card p-4 sm:p-5" style="--delay: 60ms">
 
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-6">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-7">
             <div class="sm:col-span-2 xl:col-span-1">
                 <label for="q" class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted">Search</label>
                 <div class="relative">
@@ -60,6 +65,18 @@
                     <option value="">All products</option>
                     @foreach ($products as $product)
                         <option value="{{ $product->id }}" @selected($filters['product_id'] === $product->id)>{{ $product->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label for="team_id" class="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted">Team</label>
+                <select name="team_id" id="team_id" class="{{ $input }}">
+                    <option value="">All teams</option>
+                    @foreach ($teams as $team)
+                        <option value="{{ $team->id }}" @selected($filters['team_id'] === $team->id)>
+                            {{ $team->name }}{{ $team->user ? ' — '.$team->user->name : '' }}
+                        </option>
                     @endforeach
                 </select>
             </div>
@@ -201,9 +218,10 @@
                 <tbody class="divide-y divide-line">
                     @forelse ($orders as $order)
                         <tr id="order-row-{{ $order->id }}"
-                            class="row-hover cursor-pointer transition-all duration-300 hover:bg-elevated"
-                            onclick="window.location='{{ route('admin.orders.show', $order) }}'">
-                            <td class="truncate px-3 py-3.5 font-semibold text-accent lg:px-4">#{{ $order->id }}</td>
+                            class="row-hover transition-all duration-300 hover:bg-elevated">
+                            <td class="truncate px-3 py-3.5 font-semibold lg:px-4">
+                                <a href="{{ route('admin.orders.show', $order) }}" class="text-accent hover:underline">#{{ $order->id }}</a>
+                            </td>
 
                             <td class="hidden lg:table-cell lg:px-4 lg:py-3.5">
                                 @if ($order->user)
@@ -222,7 +240,9 @@
                             </td>
 
                             <td class="min-w-0 px-3 py-3.5 lg:px-4">
-                                <p class="truncate font-medium text-ink">{{ $order->full_name }}</p>
+                                <a href="{{ route('admin.orders.show', $order) }}" class="block truncate font-medium text-ink hover:text-accent hover:underline">
+                                    {{ $order->full_name }}
+                                </a>
                                 <p class="truncate text-xs text-muted">{{ $order->email }}</p>
                                 <p class="truncate text-xs text-muted">{{ $order->phone }}</p>
                             </td>
@@ -246,7 +266,7 @@
                                 </p>
                             </td>
 
-                            <td class="min-w-0 px-3 py-3.5 lg:px-4" onclick="event.stopPropagation()">
+                            <td class="min-w-0 px-3 py-3.5 lg:px-4">
                                 <div class="status-cell" data-order="{{ $order->id }}">
                                     <div class="relative inline-block max-w-full">
                                         <select class="status-select w-full min-w-0 cursor-pointer appearance-none rounded-full border-0 py-1 pl-2.5 pr-7 text-xs font-medium transition focus:outline-none focus:ring-2 focus:ring-accent/40 {{ $order->statusClasses() }}"
@@ -278,7 +298,7 @@
                                 </span>
                             </td>
 
-                            <td class="px-3 py-3.5 lg:px-4" onclick="event.stopPropagation()">
+                            <td class="px-3 py-3.5 lg:px-4">
                                 <div class="flex items-center justify-end gap-1.5">
                                     <a href="{{ route('admin.orders.edit', $order) }}" title="Edit order"
                                        class="rounded-lg border border-line p-1.5 text-muted transition hover:border-accent hover:bg-accent/10 hover:text-accent">
@@ -393,7 +413,7 @@
         });
 
         // These apply immediately; the search box waits for Apply.
-        ['status', 'product_id', 'sort', 'per_page'].forEach(function (id) {
+        ['status', 'product_id', 'team_id', 'sort', 'per_page'].forEach(function (id) {
             document.getElementById(id).addEventListener('change', function () {
                 form.submit();
             });

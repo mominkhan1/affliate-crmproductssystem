@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\FormField;
 use App\Models\Product;
+use App\Models\Team;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -38,6 +39,9 @@ class FormBuilderController extends Controller
         return view('admin.form-builder.preview', [
             'fields' => FormField::visible()->get(),
             'products' => Product::active()->orderBy('name')->get(),
+            // Teams are private per customer, and this preview isn't any one
+            // customer, so there is nothing correct to list here.
+            'teams' => collect(),
         ]);
     }
 
@@ -143,6 +147,7 @@ class FormBuilderController extends Controller
             ['key' => 'address', 'type' => 'textarea', 'label' => 'Address', 'placeholder' => '1234 MAIN ST APT 5, LOS ANGELES CA 90001'],
             ['key' => 'product', 'type' => 'select', 'label' => 'Select Product', 'placeholder' => null],
             ['key' => 'package', 'type' => 'select', 'label' => 'Select Price / Package', 'placeholder' => null],
+            ['key' => 'team', 'type' => 'select', 'label' => 'Team', 'placeholder' => null],
         ];
 
         foreach ($defaults as $index => $field) {
@@ -153,7 +158,8 @@ class FormBuilderController extends Controller
             FormField::create([
                 ...$field,
                 'is_system' => true,
-                'is_required' => true,
+                // Picking a team is optional; everything else here is not.
+                'is_required' => $field['key'] !== 'team',
                 'is_active' => true,
                 'width' => 'half',
                 'sort_order' => $index,

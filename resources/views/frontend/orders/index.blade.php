@@ -14,24 +14,27 @@
 @section('content')
 
     {{-- Totals for the current filter --}}
-    <div class="rise mb-4 grid grid-cols-2 gap-3">
+    <div class="rise mb-4 grid grid-cols-1 gap-3 sm:grid-cols-[auto_1fr]">
         <div class="rounded-2xl border border-line bg-card p-4 shadow-sm">
             <p class="text-xs font-medium uppercase tracking-wider text-muted">Orders</p>
             <p class="mt-1 text-2xl font-bold text-ink">{{ number_format($totalOrders) }}</p>
         </div>
-        <div class="rounded-2xl border border-line bg-card p-4 shadow-sm">
-            <p class="text-xs font-medium uppercase tracking-wider text-muted">Commission</p>
-            <p class="mt-1 text-2xl font-bold {{ $commission < 0 ? 'text-danger' : 'text-brand' }}">
-                {{ $commission < 0 ? '-$'.number_format(abs($commission), 2) : '$'.number_format($commission, 2) }}
-            </p>
 
-            @if ($reversed > 0)
-                {{-- Show the arithmetic, so a smaller total never looks like a mistake --}}
-                <p class="mt-1 text-[11px] text-muted">
-                    ${{ number_format($confirmed, 2) }} confirmed
-                    &minus; ${{ number_format($reversed, 2) }} {{ Str::plural('chargeback', $returningOrders) }} ({{ $returningOrders }})
-                </p>
-            @endif
+        <div class="rounded-2xl border border-line bg-card p-4 shadow-sm">
+            <p class="mb-2.5 text-xs font-medium uppercase tracking-wider text-muted">By status</p>
+            <div class="flex flex-wrap gap-2">
+                @if ($statusCounts->isEmpty())
+                    <p class="text-sm text-muted">No orders match this filter.</p>
+                @else
+                    @foreach ($statusMeta as $key => $meta)
+                        @continue ($statusCounts->get($key, 0) == 0)
+                        <span class="inline-flex items-center gap-1.5 rounded-full bg-{{ $meta['tone'] }}/10 px-2.5 py-1 text-xs font-medium text-{{ $meta['tone'] }}">
+                            {{ $meta['label'] }}
+                            <span class="font-semibold">{{ (int) $statusCounts->get($key) }}</span>
+                        </span>
+                    @endforeach
+                @endif
+            </div>
         </div>
     </div>
 

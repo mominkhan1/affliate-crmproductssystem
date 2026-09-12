@@ -51,6 +51,15 @@ class StoreOrderRequest extends FormRequest
                 'required',
                 Rule::exists('product_prices', 'id')->where('product_id', $this->input('product_id')),
             ],
+            // Optional, and scoped to this account — a team belongs to one
+            // customer, so nothing lets an order be credited to someone
+            // else's team even with a crafted request.
+            'team_id' => [
+                'nullable',
+                Rule::exists('teams', 'id')
+                    ->where('is_active', true)
+                    ->where('user_id', $this->user()->id),
+            ],
         ];
 
         foreach ($this->fields() as $field) {
@@ -97,6 +106,7 @@ class StoreOrderRequest extends FormRequest
             'product_id.exists' => 'The selected product is not available.',
             'product_price_id.required' => 'Please select a price option.',
             'product_price_id.exists' => 'The selected price option is not available for this product.',
+            'team_id.exists' => 'The selected team is not available.',
         ];
     }
 

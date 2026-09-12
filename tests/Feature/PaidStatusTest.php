@@ -100,15 +100,16 @@ class PaidStatusTest extends TestCase
             ->assertViewHas('revenue', 100.0);
     }
 
-    public function test_a_paid_order_shows_on_the_all_orders_commission_tile(): void
+    public function test_a_paid_order_shows_on_the_all_orders_status_tile(): void
     {
         $this->makeOrder('paid', 150);
 
-        $this->actingAs($this->customer)
+        $response = $this->actingAs($this->customer)
             ->get(route('order.list'))
             ->assertOk()
-            ->assertViewHas('commission', 150.0)
-            ->assertViewHas('confirmed', 150.0);
+            ->assertSee('Paid');
+
+        $this->assertSame(1, (int) $response->viewData('statusCounts')->get('paid'));
     }
 
     public function test_a_paid_order_can_still_be_charged_back(): void

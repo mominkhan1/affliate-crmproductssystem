@@ -10,12 +10,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * The admin Orders list summed User Commission and Admin Commission across
- * every order matching the filter, including ones still in the pipeline —
- * New, Post Date, Confirmation Failure and the rest — that had never earned
- * anything. Only Sale, Active Account and Paid should count.
+ * The admin Orders list shows a count per status for whatever the current
+ * filter matches, in place of the old revenue/commission tiles.
  */
-class AdminOrdersCommissionTilesTest extends TestCase
+class AdminOrdersStatusBreakdownTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -70,57 +68,40 @@ class AdminOrdersCommissionTilesTest extends TestCase
         ]);
     }
 
-    public function test_pipeline_orders_are_excluded_from_the_commission_tiles(): void
+    public function test_status_counts_cover_every_status_present(): void
     {
         $this->makeOrder('new', 'Bryan K Gower');
-        $this->makeOrder('post_date', 'Alice J Williams');
-        $this->makeOrder('confirmation_failure', 'Janice Todd');
+        $this->makeOrder('new', 'Alice J Williams');
         $this->makeOrder('sale', 'William T Cogburn');
         $this->makeOrder('paid', 'Real Paid Lead');
 
-        $this->actingAs($this->admin)
+        $response = $this->actingAs($this->admin)
             ->get(route('admin.orders.index'))
             ->assertOk()
-            ->assertViewHas('totalOrders', 5)
-            ->assertViewHas('totalRevenue', 224.75)
-            ->assertViewHas('totalUserCommission', 300.0)
-            ->assertViewHas('totalAdminCommission', 200.0);
+            ->assertViewHas('totalOrders', 4);
+
+        $statusCounts = $response->viewData('statusCounts');
+
+        $this->assertSame(2, (int) $statusCounts->get('new'));
+        $this->assertSame(1, (int) $statusCounts->get('sale'));
+        $this->assertSame(1, (int) $statusCounts->get('paid'));
+        $this->assertNull($statusCounts->get('cancelled'));
     }
 
-    public function test_the_tiles_read_zero_when_nothing_has_converted(): void
-    {
-        $this->makeOrder('new', 'Bryan K Gower');
-        $this->makeOrder('callback', 'Janice Todd');
-
-        $this->actingAs($this->admin)
-            ->get(route('admin.orders.index'))
-            ->assertOk()
-            ->assertViewHas('totalOrders', 2)
-            ->assertViewHas('totalRevenue', 89.9)
-            ->assertViewHas('totalUserCommission', 0.0)
-            ->assertViewHas('totalAdminCommission', 0.0);
-    }
-
-    public function test_a_chargeback_does_not_still_count_toward_commission(): void
-    {
-        $this->makeOrder('going_to_return', 'Reversed Lead');
-
-        $this->actingAs($this->admin)
-            ->get(route('admin.orders.index'))
-            ->assertOk()
-            ->assertViewHas('totalUserCommission', 0.0)
-            ->assertViewHas('totalAdminCommission', 0.0);
-    }
-
-    public function test_the_tiles_still_follow_the_active_filters(): void
+    public function test_status_counts_follow_active_filters(): void
     {
         $this->makeOrder('sale', 'William T Cogburn')->update(['full_name' => 'Match Me']);
         $this->makeOrder('sale', 'No Match');
+        $this->makeOrder('new', 'Also No Match');
 
-        $this->actingAs($this->admin)
+        $response = $this->actingAs($this->admin)
             ->get(route('admin.orders.index', ['q' => 'Match Me']))
             ->assertOk()
-            ->assertViewHas('totalOrders', 1)
-            ->assertViewHas('totalUserCommission', 150.0);
+            ->assertViewHas('totalOrders', 1);
+
+        $statusCounts = $response->viewData('statusCounts');
+
+        $this->assertSame(1, (int) $statusCounts->get('sale'));
+        $this->assertNull($statusCounts->get('new'));
     }
 }

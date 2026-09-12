@@ -89,7 +89,8 @@ class InvoiceTest extends TestCase
 
         $this->assertNotNull($invoice);
         $this->assertSame('pending', $invoice->status);
-        $this->assertSame('44.95', (string) $invoice->amount);
+        // The customer's commission, not the order's sale price.
+        $this->assertSame('150.00', (string) $invoice->amount);
         $this->assertSame('Please settle this one.', $invoice->note);
         $this->assertSame('INV-'.str_pad((string) $invoice->id, 5, '0', STR_PAD_LEFT), $invoice->number);
         $this->assertNotNull($invoice->status_changed_at);
@@ -113,7 +114,7 @@ class InvoiceTest extends TestCase
 
         $invoice = $this->sendInvoice($order, ['amount' => 99999, 'note' => 'nice try']);
 
-        $this->assertSame('44.95', (string) $invoice->amount);
+        $this->assertSame('150.00', (string) $invoice->amount);
     }
 
     public function test_an_order_cannot_be_invoiced_twice(): void
@@ -151,7 +152,7 @@ class InvoiceTest extends TestCase
             ->assertSee($invoice->number)
             ->assertSee('Hello there')
             ->assertSee('Pending')
-            ->assertSee('$44.95');
+            ->assertSee('$150.00');
     }
 
     public function test_the_profile_shows_settings_alongside_the_invoices(): void
@@ -240,7 +241,7 @@ class InvoiceTest extends TestCase
             ->get(route('order.show', $order))
             ->assertOk()
             ->assertSee('Send Invoice')
-            ->assertSee('$44.95');
+            ->assertSee('$150.00');
 
         $invoice = $this->sendInvoice($order, ['note' => 'Thanks!']);
 

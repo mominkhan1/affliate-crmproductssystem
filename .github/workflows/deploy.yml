@@ -11,6 +11,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: actions/checkout@v4
+
+      # public/build is gitignored, and the Hostinger host cannot be relied
+      # on to have Node/npm available, so the frontend is built here on
+      # GitHub's runner and shipped over, rather than on the server.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Ship built assets to the server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          port: ${{ secrets.SSH_PORT }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          source: "public/build/*"
+          target: "~/crm-app/public/build/"
+          strip_components: 2
+          overwrite: true
+
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.0
         with:

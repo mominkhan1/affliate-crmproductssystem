@@ -123,7 +123,6 @@ class AdminDashboardFiltersTest extends TestCase
         $this->dashboard(['status' => 'cancelled'])
             ->assertOk()
             ->assertViewHas('totalOrders', 1)
-            ->assertViewHas('cancelledOrders', 1)
             ->assertViewHas('chargebackOrders', 0)
             ->assertViewHas('revenue', 0.0);
     }
@@ -136,7 +135,7 @@ class AdminDashboardFiltersTest extends TestCase
 
         $this->dashboard()
             ->assertOk()
-            ->assertViewHas('cancelledOrders', 2)
+            ->assertViewHas('totalOrders', 3)
             ->assertViewHas('chargebackOrders', 1);
     }
 

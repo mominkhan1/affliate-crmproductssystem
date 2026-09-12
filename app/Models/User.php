@@ -54,4 +54,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(Invoice::class);
     }
+
+    /**
+     * This account's own sales teams, private to them.
+     */
+    public function teams(): HasMany
+    {
+        return $this->hasMany(Team::class);
+    }
 }

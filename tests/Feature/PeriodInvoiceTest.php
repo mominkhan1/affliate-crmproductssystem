@@ -170,7 +170,10 @@ class PeriodInvoiceTest extends TestCase
 
         $invoice = Invoice::firstOrFail();
 
-        $this->assertSame('60.00', $invoice->orders()->first()->pivot->commission);
+        // The pivot's own column isn't cast the way a model attribute is, so
+        // its raw value differs by DB driver (a string on MySQL, a native
+        // number on SQLite) — compare numerically instead of by type.
+        $this->assertEquals(60.00, $invoice->orders()->first()->pivot->commission);
         $this->assertSame('60.00', $invoice->amount);
     }
 

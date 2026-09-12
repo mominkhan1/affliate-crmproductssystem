@@ -77,7 +77,9 @@ class CustomerDashboardTest extends TestCase
 
         $response->assertViewHas('earned', 260.0);
         $response->assertViewHas('pending', 90.0);
-        $response->assertViewHas('lifetime', 350.0);
+        // None of these orders are in "Paid" specifically (sale/active_account
+        // only), so the paid-orders figure stays at zero.
+        $response->assertViewHas('paidCommission', 0.0);
         $response->assertViewHas('revenue', 89.9);
         $response->assertViewHas('paidOrders', 2);
         $response->assertViewHas('newOrders', 1);

@@ -161,40 +161,18 @@ class VoiceNoteUploadTest extends TestCase
         Storage::disk('public')->assertExists($first);
     }
 
-    public function test_removing_one_note_leaves_the_other_alone(): void
+    public function test_a_customer_can_no_longer_remove_a_voice_note(): void
     {
-        $this->upload(UploadedFile::fake()->create('first.mp3', 32, 'audio/mpeg'));
-        $first = $this->order->voiceNotes()->first();
+        // Once uploaded, a recording is a record — only an admin can take it
+        // back off the order. There is no customer-facing route for it.
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('order.voice-note.destroy'));
 
-        $this->upload(UploadedFile::fake()->create('second.wav', 32, 'audio/wav'));
-        $second = $this->order->voiceNotes()->first();
+        $this->upload(UploadedFile::fake()->create('first.mp3', 32, 'audio/mpeg'));
 
         $this->actingAs($this->customer)
-            ->delete(route('order.voice-note.destroy', [$this->order, $first]))
-            ->assertRedirect(route('order.show', $this->order));
-
-        $this->assertSame(1, $this->order->voiceNotes()->count());
-        Storage::disk('public')->assertMissing($first->path);
-        Storage::disk('public')->assertExists($second->path);
-    }
-
-    public function test_another_customer_cannot_delete_a_note_from_this_order(): void
-    {
-        $this->upload(UploadedFile::fake()->create('first.mp3', 32, 'audio/mpeg'));
-        $note = $this->order->voiceNotes()->first();
-
-        $other = User::create([
-            'name' => 'Other',
-            'email' => 'other-delete@example.com',
-            'password' => bcrypt('secret1234'),
-            'role' => 'user',
-        ]);
-
-        $this->actingAs($other)
-            ->delete(route('order.voice-note.destroy', [$this->order, $note]))
-            ->assertNotFound();
-
-        Storage::disk('public')->assertExists($note->path);
+            ->get(route('order.show', $this->order))
+            ->assertOk()
+            ->assertDontSee('voice-note/');
     }
 
     public function test_the_uploader_gets_json_back(): void

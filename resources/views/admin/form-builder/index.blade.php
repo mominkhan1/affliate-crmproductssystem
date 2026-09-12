@@ -259,7 +259,9 @@
                         ? 'Every active product appears here on the storefront. Manage them under Products.'
                         : field.key === 'package'
                             ? 'Loads the packages of the product the customer picks, with live pricing.'
-                            : 'Renders as a stepper and multiplies the total. Remove it and every order counts as one unit.'}
+                            : field.key === 'team'
+                                ? 'Each customer only sees their own active teams here. Manage them under Teams. Optional by default.'
+                                : 'Renders as a stepper and multiplies the total. Remove it and every order counts as one unit.'}
                 </p>
             </div>` : (meta.has_options ? `
             <div>

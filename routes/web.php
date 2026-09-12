@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\FormBuilderController;
 use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\TeamController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\CustomerAuthController;
 use App\Http\Controllers\Admin\InvoiceController as AdminInvoiceController;
@@ -51,7 +52,6 @@ Route::middleware(['auth', 'customer'])->group(function () {
     Route::get('/orders', [CustomerOrderController::class, 'index'])->name('order.list');
     Route::get('/orders/{order}', [CustomerOrderController::class, 'show'])->name('order.show');
     Route::post('/orders/{order}/voice-note', [CustomerOrderController::class, 'storeVoiceNote'])->name('order.voice-note.store');
-    Route::delete('/orders/{order}/voice-note/{voiceNote}', [CustomerOrderController::class, 'destroyVoiceNote'])->name('order.voice-note.destroy');
     Route::post('/orders/{order}/invoice', [InvoiceController::class, 'store'])->name('order.invoice.store');
 
     // Claiming for a week's work, rather than one order at a time.
@@ -82,6 +82,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
         Route::resource('products', ProductController::class)->except('show');
+        Route::resource('teams', TeamController::class)->except('show');
         Route::resource('users', UserController::class);
         Route::get('invoices/{invoice}', [AdminInvoiceController::class, 'show'])->name('invoices.show');
         Route::get('invoices/{invoice}/download', [AdminInvoiceController::class, 'download'])->name('invoices.download');
@@ -101,5 +102,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
         Route::put('orders/{order}', [AdminOrderController::class, 'update'])->name('orders.update');
         Route::patch('orders/{order}/status', [AdminOrderController::class, 'updateStatus'])->name('orders.status');
+        Route::delete('orders/{order}/voice-note/{voiceNote}', [AdminOrderController::class, 'destroyVoiceNote'])->name('orders.voice-note.destroy');
     });
 });

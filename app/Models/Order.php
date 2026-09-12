@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'address',
     'product_id',
     'product_price_id',
+    'team_id',
     'quantity',
     'total_price',
     'user_commission_total',
@@ -211,6 +212,26 @@ class Order extends Model
     }
 
     /**
+     * This order's history — submitted, status changes, notes and the
+     * rest — oldest first, so it reads top to bottom as the order's story.
+     */
+    public function activities(): HasMany
+    {
+        return $this->hasMany(OrderActivity::class)->oldest();
+    }
+
+    /**
+     * Add one entry to this order's history.
+     */
+    public function logActivity(string $description, ?string $causer = null): OrderActivity
+    {
+        return $this->activities()->create([
+            'description' => $description,
+            'causer' => $causer,
+        ]);
+    }
+
+    /**
      * The invoices this order has been billed on.
      *
      * One row at most, but going through the pivot means "has this been
@@ -255,6 +276,14 @@ class Order extends Model
     public function productPrice(): BelongsTo
     {
         return $this->belongsTo(ProductPrice::class);
+    }
+
+    /**
+     * The team credited with the sale, if one was picked.
+     */
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(Team::class);
     }
 
     /**

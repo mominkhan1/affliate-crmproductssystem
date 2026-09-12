@@ -41,8 +41,8 @@
                         <dd class="mt-1 text-sm font-medium text-ink">{{ $order->quantity }}</dd>
                     </div>
                     <div>
-                        <dt class="text-xs uppercase tracking-wider text-muted">Total</dt>
-                        <dd class="mt-1 text-lg font-extrabold tracking-tight text-brand">${{ number_format($order->total_price, 2) }}</dd>
+                        <dt class="text-xs uppercase tracking-wider text-muted">Commission</dt>
+                        <dd class="mt-1 text-lg font-extrabold tracking-tight text-brand">${{ number_format($order->user_commission_total, 2) }}</dd>
                     </div>
                     <div>
                         <dt class="text-xs uppercase tracking-wider text-muted">Submitted</dt>
@@ -154,10 +154,10 @@
                             <div class="flex items-center justify-between gap-3">
                                 <span class="text-xs font-medium uppercase tracking-wider text-muted">Amount</span>
                                 <span class="text-xl font-extrabold tracking-tight text-brand">
-                                    ${{ number_format($order->total_price, 2) }}
+                                    ${{ number_format($order->user_commission_total, 2) }}
                                 </span>
                             </div>
-                            <p class="mt-1 text-[11px] text-muted">The order total, taken from the order itself.</p>
+                            <p class="mt-1 text-[11px] text-muted">Your commission on this order, taken from the order itself.</p>
                         </div>
 
                         <div>
@@ -214,18 +214,6 @@
                                        class="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-muted transition hover:border-brand hover:text-brand">
                                         Download
                                     </a>
-
-                                    <form method="POST" action="{{ route('order.voice-note.destroy', [$order, $voiceNote]) }}"
-                                          data-confirm-title="Remove voice note"
-                                          data-confirm="This recording will be deleted from your order."
-                                          data-confirm-text="Remove">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit"
-                                                class="rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-medium text-danger transition hover:bg-danger hover:text-white">
-                                            Remove
-                                        </button>
-                                    </form>
                                 </div>
                             </div>
                         @endforeach
@@ -315,6 +303,42 @@
                         </button>
                     </div>
                 </form>
+            </div>
+
+            {{-- Activity --}}
+            <div class="rise mt-4 rounded-2xl border border-line bg-card p-5 shadow-sm sm:p-6" style="--delay: 160ms">
+                <div class="mb-1 flex items-center gap-2.5">
+                    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 text-brand">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </span>
+                    <h2 class="text-sm font-semibold text-ink">Activity</h2>
+                </div>
+                <p class="mb-4 text-xs text-muted">Everything that has happened on this order.</p>
+
+                @if ($order->activities->isEmpty())
+                    <p class="text-sm text-muted">Nothing recorded yet.</p>
+                @else
+                    <ul class="space-y-5">
+                        @foreach ($order->activities as $activity)
+                            <li class="relative pl-5">
+                                @unless ($loop->last)
+                                    <span class="absolute left-[3px] top-3 h-full w-px bg-line"></span>
+                                @endunless
+                                <span class="absolute left-0 top-1.5 h-1.5 w-1.5 rounded-full bg-brand"></span>
+
+                                <p class="whitespace-pre-line text-sm font-medium text-ink">{{ $activity->description }}</p>
+                                <p class="mt-0.5 text-xs text-muted">
+                                    {{ $activity->createdAtLabel() }}
+                                    @if ($activity->causer)
+                                        &middot; {{ $activity->causer }}
+                                    @endif
+                                </p>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
             </div>
         </div>
     </div>

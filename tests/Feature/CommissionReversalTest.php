@@ -110,7 +110,7 @@ class CommissionReversalTest extends TestCase
             ->assertSee('-$150.00');
     }
 
-    public function test_lifetime_value_nets_the_return_out_too(): void
+    public function test_earned_nets_the_return_out_while_pending_stays_apart(): void
     {
         $this->makeOrder('sale', 150);
         $this->makeOrder('new', 90);
@@ -119,8 +119,18 @@ class CommissionReversalTest extends TestCase
         $this->dashboard()
             ->assertOk()
             ->assertViewHas('earned', 100.0)
-            ->assertViewHas('pending', 90.0)
-            ->assertViewHas('lifetime', 190.0);
+            ->assertViewHas('pending', 90.0);
+    }
+
+    public function test_paid_commission_only_counts_the_paid_status(): void
+    {
+        $this->makeOrder('sale', 150);
+        $this->makeOrder('paid', 200);
+        $this->makeOrder('going_to_return', 50);
+
+        $this->dashboard()
+            ->assertOk()
+            ->assertViewHas('paidCommission', 200.0);
     }
 
     public function test_other_lost_statuses_are_not_taken_back(): void

@@ -80,6 +80,12 @@
                             @endif
                         </dd>
                     </div>
+                    <div>
+                        <dt class="text-xs uppercase tracking-wider text-muted">Team</dt>
+                        <dd class="mt-1 text-sm font-medium text-ink">
+                            {{ $order->team?->name ?? '—' }}
+                        </dd>
+                    </div>
                     <div class="sm:col-span-2">
                         <dt class="text-xs uppercase tracking-wider text-muted">Address</dt>
                         <dd class="mt-1 whitespace-pre-line rounded-xl border border-line bg-elevated p-3 text-sm font-medium text-ink">{{ $order->address }}</dd>
@@ -181,13 +187,27 @@
                                     <source src="{{ $voiceNote->url() }}">
                                 </audio>
 
-                                <a href="{{ $voiceNote->url() }}" download
-                                   class="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-muted transition hover:border-accent hover:text-accent">
-                                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-9-4l4 4m0 0l4-4m-4 4V4"/>
-                                    </svg>
-                                    Download
-                                </a>
+                                <div class="mt-3 flex flex-wrap items-center gap-2">
+                                    <a href="{{ $voiceNote->url() }}" download
+                                       class="inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-muted transition hover:border-accent hover:text-accent">
+                                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-9-4l4 4m0 0l4-4m-4 4V4"/>
+                                        </svg>
+                                        Download
+                                    </a>
+
+                                    <form method="POST" action="{{ route('admin.orders.voice-note.destroy', [$order, $voiceNote]) }}"
+                                          data-confirm-title="Remove voice note"
+                                          data-confirm="{{ $voiceNote->name }} will be deleted from this order. This cannot be undone."
+                                          data-confirm-text="Remove">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit"
+                                                class="rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-medium text-danger transition hover:bg-danger hover:text-white">
+                                            Remove
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
                         @endforeach
                     </div>
@@ -294,6 +314,34 @@
                         Save Changes
                     </button>
                 </form>
+            </div>
+
+            {{-- Activity --}}
+            <div class="rise mt-4 rounded-2xl border border-line bg-card p-5 sm:p-6" style="--delay: 200ms">
+                <h2 class="mb-5 text-sm font-semibold text-ink">Activity</h2>
+
+                @if ($order->activities->isEmpty())
+                    <p class="text-sm text-muted">Nothing recorded yet.</p>
+                @else
+                    <ul class="space-y-5">
+                        @foreach ($order->activities as $activity)
+                            <li class="relative pl-5">
+                                @unless ($loop->last)
+                                    <span class="absolute left-[3px] top-3 h-full w-px bg-line"></span>
+                                @endunless
+                                <span class="absolute left-0 top-1.5 h-1.5 w-1.5 rounded-full bg-accent"></span>
+
+                                <p class="whitespace-pre-line text-sm font-medium text-ink">{{ $activity->description }}</p>
+                                <p class="mt-0.5 text-xs text-muted">
+                                    {{ $activity->createdAtLabel() }}
+                                    @if ($activity->causer)
+                                        &middot; {{ $activity->causer }}
+                                    @endif
+                                </p>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
             </div>
         </div>
     </div>

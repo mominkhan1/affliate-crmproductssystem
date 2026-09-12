@@ -35,6 +35,7 @@ final class OrderFilters
             'from' => DateRange::parseDate($request->query('from')),
             'to' => DateRange::parseDate($request->query('to')),
             'product_id' => $request->query('product_id') ? (int) $request->query('product_id') : null,
+            'team_id' => $request->query('team_id') ? (int) $request->query('team_id') : null,
             // Several accounts can be inspected side by side.
             'user_ids' => $withAccounts
                 ? collect((array) $request->query('user_ids', []))
@@ -99,6 +100,10 @@ final class OrderFilters
             $query->where('product_id', $filters['product_id']);
         }
 
+        if ($filters['team_id'] ?? null) {
+            $query->where('team_id', $filters['team_id']);
+        }
+
         if (! empty($filters['user_ids'])) {
             $query->whereIn('user_id', $filters['user_ids']);
         }
@@ -140,6 +145,7 @@ final class OrderFilters
             ($filters['status'] ?? 'all') !== 'all',
             ($filters['period'] ?? 'all') !== 'all',
             ($filters['product_id'] ?? null) !== null,
+            ($filters['team_id'] ?? null) !== null,
             ! empty($filters['user_ids']),
         ])->filter()->count();
     }

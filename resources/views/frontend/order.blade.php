@@ -73,6 +73,22 @@
                                 @enderror
                             </div>
 
+                        @elseif ($field->key === 'team')
+                            <div class="{{ $field->width === 'full' ? 'sm:col-span-2' : '' }}">
+                                <label for="team_id" class="mb-1.5 block text-sm font-medium text-ink">
+                                    {{ $field->label }}
+                                </label>
+                                <select name="team_id" id="team_id" class="{{ $cls('team_id') }}">
+                                    <option value="">No team</option>
+                                    @foreach ($teams as $team)
+                                        <option value="{{ $team->id }}" @selected(old('team_id') == $team->id)>{{ $team->name }}</option>
+                                    @endforeach
+                                </select>
+                                @error('team_id')
+                                    <p class="mt-1.5 text-xs font-medium text-danger">{{ $message }}</p>
+                                @enderror
+                            </div>
+
                         @elseif ($field->type === 'quantity')
                             <div class="{{ $field->width === 'full' ? 'sm:col-span-2' : '' }}">
                                 <label for="quantity" class="mb-1.5 block text-sm font-medium text-ink">

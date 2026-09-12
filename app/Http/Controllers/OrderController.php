@@ -6,6 +6,7 @@ use App\Http\Requests\StoreOrderRequest;
 use App\Models\FormField;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Team;
 use App\Support\DateRange;
 use App\Support\OrderFilters;
 use Carbon\CarbonImmutable;
@@ -25,6 +26,8 @@ class OrderController extends Controller
     {
         return view('frontend.order', [
             'products' => Product::active()->orderBy('name')->get(),
+            // Private to this account — no other customer's teams leak in.
+            'teams' => Team::active()->ownedBy(auth()->id())->orderBy('name')->get(),
             'fields' => FormField::visible()->get(),
         ]);
     }
@@ -73,11 +76,16 @@ class OrderController extends Controller
         $pending = (float) $scope()->whereIn('status', Order::OPEN_STATUSES)->sum('user_commission_total');
         $revenue = (float) $scope()->whereIn('status', Order::EARNING_STATUSES)->sum('total_price');
 
+        // Commission on orders sitting specifically in "Paid" — not the
+        // broader sale/active_account/paid bucket $paidOrders counts.
+        $paidCommission = (float) $scope()->where('status', 'paid')->sum('user_commission_total');
+
         return view('frontend.history', [
             'orders' => $orders,
             'totalOrders' => $totalOrders,
             'newOrders' => $this->sumStatuses($counts, Order::OPEN_STATUSES),
             'paidOrders' => $earnedOrders,
+            'postDateOrders' => (int) $counts->get('post_date', 0),
             'cancelledOrders' => $this->sumStatuses($counts, Order::LOST_STATUSES),
 
             'earned' => $earned,
@@ -85,7 +93,7 @@ class OrderController extends Controller
             'reversed' => $reversed,
             'returningOrders' => $this->sumStatuses($counts, Order::REVERSING_STATUSES),
             'pending' => $pending,
-            'lifetime' => $earned + $pending,
+            'paidCommission' => $paidCommission,
             'revenue' => $revenue,
             'averageEarning' => $earnedOrders > 0 ? $confirmed / $earnedOrders : 0.0,
             'conversionRate' => $totalOrders > 0 ? $earnedOrders / $totalOrders * 100 : 0.0,
@@ -106,6 +114,7 @@ class OrderController extends Controller
             'periods' => DateRange::PERIODS,
             'statusMeta' => Order::STATUS_META,
             'products' => Product::orderBy('name')->get(['id', 'name']),
+            'teams' => Team::ownedBy($user->id)->orderBy('name')->get(['id', 'name']),
             'rangeLabel' => DateRange::label($filters['period'], $filters['from'], $filters['to']),
             'activeFilterCount' => OrderFilters::activeCount($filters),
         ]);
@@ -200,11 +209,11 @@ class OrderController extends Controller
      */
     public function store(StoreOrderRequest $request): RedirectResponse
     {
-        Order::create([
+        $order = Order::create([
             // Tie the order to the signed in account.
             'user_id' => $request->user()->id,
             ...$request->columnAnswers(),
-            ...$request->safe()->only(['product_id', 'product_price_id']),
+            ...$request->safe()->only(['product_id', 'product_price_id', 'team_id']),
             'quantity' => $request->quantity(),
             'form_data' => $request->customAnswers(),
             // Never trust the figures that came from the browser.
@@ -213,6 +222,8 @@ class OrderController extends Controller
             'admin_commission_total' => $request->adminCommission(),
             'status' => 'new',
         ]);
+
+        $order->logActivity('Order submitted.', $request->user()->name);
 
         return redirect()
             ->route('order.create')

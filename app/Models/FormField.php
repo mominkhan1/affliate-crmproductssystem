@@ -39,14 +39,14 @@ class FormField extends Model
      *
      * @var array<int, string>
      */
-    public const SYSTEM_KEYS = ['full_name', 'email', 'phone', 'address', 'product', 'package'];
+    public const SYSTEM_KEYS = ['full_name', 'email', 'phone', 'address', 'product', 'package', 'team'];
 
     /**
      * Keys rendered by their own dedicated markup rather than a plain input.
      *
      * @var array<int, string>
      */
-    public const SPECIAL_KEYS = ['product', 'package'];
+    public const SPECIAL_KEYS = ['product', 'package', 'team'];
 
     /**
      * Card related types, which are handled with extra care on submit.
